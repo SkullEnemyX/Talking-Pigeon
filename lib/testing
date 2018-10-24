@@ -1,0 +1,204 @@
+import 'package:flutter/material.dart';
+
+class ChatPage extends StatefulWidget {
+  final Color greet;
+  final Color background;
+  final String name;
+  final String frienduid;
+
+  ChatPage({Key key, this.name,this.greet,this.background,this.frienduid}) : super(key: key);
+
+  @override
+  _ChatPageState createState() => _ChatPageState();
+}
+
+class _ChatPageState extends State<ChatPage> {
+
+  final TextEditingController textEditingController = new TextEditingController();
+  List<List<String>> listMSG = [];
+  String strMsg;
+  
+  @override
+  Widget build(BuildContext context) {
+
+        return Scaffold(
+          appBar: new AppBar(
+            elevation: 0.0,
+            backgroundColor: widget.background,
+            centerTitle: true,
+            title: new Text("${widget.name}".toString().split(" ")[0],//Change Name to Friends name.
+            style: TextStyle(fontSize: 23.0,color: widget.greet),),
+            leading: new IconButton(
+              icon: Icon(Icons.arrow_back,color: Color(0xFF27E9E1),),
+              onPressed: (){
+                Navigator.pop(context);
+              },
+            ),
+          ),
+          body: new Container(
+            color: widget.background,
+            width: double.infinity,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.start,
+              children: <Widget>[
+                Expanded(
+                  child:FutureBuilder(
+                    future: conversations(textEditingController.value.toString(),false,true),
+                    builder: (BuildContext context, AsyncSnapshot snapshot)
+                    {
+                      return ListView.builder(
+                          shrinkWrap: true,
+                          itemCount: snapshot.data.length,
+                          itemBuilder: (context,index){
+    
+                          }
+                          // children: <Widget>[
+                          //   Column(
+                          //     crossAxisAlignment: CrossAxisAlignment.stretch,
+                          //     children: <Widget>[
+                          //           Bubble(message: "Hello. My name is Vineet",notMe: false,delivered: true,),
+                          //           Bubble(message: "Hey, this is Navmi. Nice to meet you :)",notMe: true,delivered: false,),
+                          //           Bubble(message: "So yeah tell me about yourself",notMe: false,delivered: true,),
+                          //           Bubble(message: "Tell me what do you want to know?",notMe: true,delivered: false,),
+                          //           Bubble(message: "Anything that you like",notMe: false,delivered: true,),
+                          //           Bubble(message: "I mean like your hobbies , etc... :p",notMe: false,delivered: false,),
+                          //           Bubble(message: "Hello. My name is Vineet",notMe: false,delivered: true,),
+    
+                          //     ],
+                          //   ),
+                          // ],
+                        );
+                    }
+                                      
+                                  ),
+                                ),
+                                Padding(
+                                  padding: EdgeInsets.all(10.0),
+                                    child: Container(
+                                    padding: EdgeInsets.symmetric(horizontal: 8.0),
+                                    decoration: BoxDecoration(
+                                      color: widget.greet,
+                                      borderRadius: new BorderRadius.circular(20.0)
+                                    ),
+                                    child: new TextFormField(
+                                                          textAlign: TextAlign.start,
+                                                          decoration: new InputDecoration(
+                                                            filled: true,
+                                                            border: InputBorder.none,
+                                                            fillColor: Colors.transparent,
+                                                            hintText: "Type a message"
+                                                            ,suffixIcon: IconButton(
+                                                              icon: Icon(Icons.send,size: 25.0,),
+                                                              color: widget.background,
+                                                              disabledColor: Colors.grey,
+                                                              onPressed: (){
+                                                                textEditingController.clear();},
+                                                            )
+                                                          ),
+                                                          //scrollPadding: EdgeInsets.all(20.0),
+                                                          controller: textEditingController,
+                                                          keyboardType: TextInputType.text,
+                                                          style: TextStyle(color: widget.background,fontSize: 18.0),
+                                                          onSaved: (val)=> conversations(val, false, true),
+                                                    ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        // child: new Column(
+                        //   mainAxisAlignment: MainAxisAlignment.center,
+                        //   children: <Widget>[
+                            
+                        //   // new TextFormField(
+                        //   //   keyboardType: TextInputType.text,
+                        //   // ) 
+                        //   ],
+                        // ),
+                      ),
+                
+                    );
+                  }
+                
+conversations(String msg,bool notme,bool delivered) {
+var messages = [msg,notme,delivered];
+print(messages[0]);
+listMSG.add(messages);
+return listMSG;
+}
+}
+
+class Bubble extends StatelessWidget{
+
+  Bubble({this.message,this.notMe,this.delivered});
+  final bool delivered;
+  final bool notMe;
+  final String message;
+  
+  @override
+  Widget build(BuildContext context) {
+    final bg = notMe ? Colors.white : Color(0xFF27E9E1).withOpacity(0.8);
+    //final String message = "Hello my name is Skull and I am awesome";
+    final align = notMe ? CrossAxisAlignment.start : CrossAxisAlignment.end;
+    final icon = delivered ? Icons.done_all : Icons.done;
+    final double width = MediaQuery.of(context).size.width*0.75;
+    final radius = notMe
+        ? BorderRadius.only(
+            topRight: Radius.circular(5.0),
+            bottomLeft: Radius.circular(10.0),
+            bottomRight: Radius.circular(5.0),
+          )
+        : BorderRadius.only(
+            topLeft: Radius.circular(5.0),
+            bottomLeft: Radius.circular(5.0),
+            bottomRight: Radius.circular(10.0),
+          );
+    return Column(
+      crossAxisAlignment: align,
+      children: <Widget>[
+        Container(
+                      width: message.split(" ").length <= 9?null:width,
+                      margin: const EdgeInsets.all(10.0),
+                      padding: const EdgeInsets.all(8.0),
+                      //color: Colors.red,
+                      decoration: BoxDecoration(
+                      boxShadow: [
+                      BoxShadow(
+                      blurRadius: .5,
+                      spreadRadius: 1.0,
+                      color: Colors.black.withOpacity(.12))
+                      ],
+                      color: bg,
+                      borderRadius: radius,
+              ),
+              child: Stack(
+                children: <Widget>[
+                  Padding(
+                    padding: EdgeInsets.only(right: 48.0,bottom: 5.0),
+                    child: Text(message,style: TextStyle(fontSize: 16.0),),
+                  ),
+                  Positioned(
+                    bottom: 0.0,
+                    right: 0.0,
+                    child: Row(
+                      children: <Widget>[
+                        Text("11.00",
+                            style: TextStyle(
+                              color: Colors.black38,
+                              fontSize: 10.0,
+                            )),
+                        SizedBox(width: 3.0),
+                        Icon(
+                          icon,
+                          size: 12.0,
+                          color: Colors.black38,
+                        )
+                      ],
+                    ),
+                  )
+                ],
+              ),
+                    ),
+      ],
+    );
+  }
+}

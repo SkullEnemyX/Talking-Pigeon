@@ -1,0 +1,58 @@
+{
+  "project_info": {
+    "project_number": "143924107396",
+    "firebase_url": "https://talking-pigeon-x.firebaseio.com",
+    "project_id": "talking-pigeon-x",
+    "storage_bucket": "talking-pigeon-x.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:143924107396:android:1f90ea70cbf36cd9",
+        "android_client_info": {
+          "package_name": "FrozenSkull.talking_pigeon"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "143924107396-3pl59694agsvls0un6rgfrsveqg1tp35.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "FrozenSkull.talking_pigeon",
+            "certificate_hash": "f40cf096e227fb75f3ea089fe63f9a8a459518e0"
+          }
+        },
+        {
+          "client_id": "143924107396-d6ok53befd0lv11tng5ma9m6orm2rpqf.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD9JHrJzBEcbP2zXcd_trtFCYHiydSGaW4"
+        },
+        {
+          "current_key": "AIzaSyD9JHrJzBEcbP2zXcd_trtFCYHiydSGaW4"
+        }
+      ],
+      "services": {
+        "analytics_service": {
+          "status": 1
+        },
+        "appinvite_service": {
+          "status": 2,
+          "other_platform_oauth_client": [
+            {
+              "client_id": "143924107396-d6ok53befd0lv11tng5ma9m6orm2rpqf.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        },
+        "ads_service": {
+          "status": 2
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
