@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_spinkit/flutter_spinkit.dart';
 
 class ChatPage extends StatefulWidget {
   final Color greet;
@@ -13,10 +15,26 @@ class ChatPage extends StatefulWidget {
 }
 
 class _ChatPageState extends State<ChatPage> {
+  var snap;
+
+  @override
+    void initState() {
+      super.initState();
+      textEditingController.clear();
+      snap = snapshotReturn();
+    }
+
+  @override
+    void dispose() {
+      // TODO: implement dispose
+      super.dispose();
+      textEditingController.dispose();
+    }
 
   final TextEditingController textEditingController = new TextEditingController();
   var listMsg = [];
   String msg;
+  final ScrollController listScrollController = new ScrollController();
 
 
 
@@ -28,7 +46,29 @@ class _ChatPageState extends State<ChatPage> {
     listMsg.add([msg,false,false]);
     return listMsg;
   }
+
+  returnGroupId(String myid,String friendid){
+    if(myid.hashCode>=friendid.hashCode)
+    {
+      return(myid.hashCode.toString()+friendid.hashCode.toString());
+    }
+    else
+    {
+      return(friendid.hashCode.toString()+myid.hashCode.toString());
+    }
+  }
   
+  Stream<QuerySnapshot> snapshotReturn(){
+    var snap = Firestore.instance
+                                          .collection('messages')
+                                          .document(returnGroupId(widget.name, widget.frienduid))
+                                          .collection(returnGroupId(widget.name, widget.frienduid))
+                                          .orderBy('timestamp', descending: true)
+                                          .limit(30)
+                                          .snapshots();
+    return snap;
+  }
+
   @override
   Widget build(BuildContext context) {
     
@@ -52,28 +92,85 @@ class _ChatPageState extends State<ChatPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.start,
           children: <Widget>[
-            Expanded(
-              child:ListView.builder(
-                  shrinkWrap: true,
-                  itemCount: listMsg.length,
-                  itemBuilder: (context,index)
+            Flexible(
+              child:StreamBuilder(
+                stream: snap,
+                builder: (context,snapshot)
+                {
+                  if(!snapshot.hasData) return CircularProgressIndicator();
+                  if(snapshot.data.documents.length!=null)
                   {
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: <Widget>[
-                            new Presentmessage(message:listMsg[index][0],notme: listMsg[index][1],delivered: listMsg[index][2],),
-                      ],
-                    );
+                    return ListView.builder(
+                      reverse: true,
+                      itemCount: snapshot.data.documents.length,
+                      controller: listScrollController,
+                      itemBuilder: (context,i)
+                      {
+                       try{
+                        DocumentSnapshot document = snapshot.data.documents[i];
+                        //counter = counter + 1 ;
+                        print(snapshot.data.documents.length);
+                        //setState(() {});
+                        return Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: <Widget>[
+                                  new Presentmessage(message: document["content"],
+                                  notme: document["isMe"].compareTo(widget.name)==0?false:true,
+                                  delivered: listMsg[i][2],
+                                  time: document["timestamp"],),
+                            ],
+                          );
+                       }
+                       catch(RangeError)
+                    {
+                      //querySnapShotCounter = querySnapShotCounter+1;
+                      //i+=1;
+                     throw(RangeError);
+
                     }
-                ),
+                        }
+                    );
+                  }
+                  else
+                  {
+                    return Container();
+                  }
+                  if(snapshot.connectionState == ConnectionState.waiting)
+                  {
+                    return Center(child: SpinKitDoubleBounce(
+                          size: 60.0,
+                          color: Color(0xFF27E9E1),
+                        ));
+                  }
+                }
+              ),
             ),
             Padding(
               padding: EdgeInsets.all(10.0),
                           child: Container(
                 padding: EdgeInsets.symmetric(horizontal: 8.0),
                 decoration: BoxDecoration(
-                  color: widget.greet != Color(0xFF242424)?widget.greet:Colors.grey.shade200,
+                  color: widget.greet != Color(0xFF242424)?widget.greet:Colors.grey.shade300,
                   borderRadius: new BorderRadius.circular(20.0),
+                  boxShadow: [
+                    BoxShadow(
+                    spreadRadius: 3.0,
+                    color: widget.greet != Color(0xFF242424)?Colors.white54:Colors.grey.shade400
+                  ),
+                  BoxShadow(
+                    spreadRadius: 3.0,
+                    color: Colors.grey.shade600
+                  ),
+                  BoxShadow(
+                    spreadRadius: 2.0,
+                    color: Colors.grey.shade300
+                  ),
+                  BoxShadow(
+                    spreadRadius: 1.0,
+                    color: Colors.grey.shade200
+                  ),
+                  ]
+                  
                 ),
                 child: new TextFormField(
                                       textAlign: TextAlign.start,
@@ -86,11 +183,7 @@ class _ChatPageState extends State<ChatPage> {
                                           icon: Icon(Icons.send,size: 25.0,),
                                           color: Colors.black,
                                           disabledColor: Colors.grey,
-                                          onPressed: (){
-                                            if(textEditingController.value.text!="")
-                                            messageList(textEditingController.value.text);
-                                            setState(() {}); //Refreshing widget when new message is sent or appears.
-                                            textEditingController.clear();},
+                                          onPressed: sendMessage,
                                         )
                                       ),
                                       //scrollPadding: EdgeInsets.all(20.0),
@@ -116,31 +209,64 @@ class _ChatPageState extends State<ChatPage> {
 
     );
   }
+
+  void sendMessage() {
+  if(textEditingController.value.text!="")
+  {
+  messageList(textEditingController.value.text);
+  //Refreshing widget when new message is sent or appears.
+  var documentReference = Firestore.instance
+  .collection('messages')
+  .document(returnGroupId(widget.name, widget.frienduid))
+  .collection(returnGroupId(widget.name, widget.frienduid))
+  .document(DateTime.now().millisecondsSinceEpoch.toString());
+
+  Firestore.instance.runTransaction((transaction) async {
+  await transaction.set(
+  documentReference,
+  {
+  'timestamp': time(),
+  'content': textEditingController.value.text,
+  'isMe' : widget.name
+  },
+  );
+  }).whenComplete((){textEditingController.clear();
+  setState(() {
+  });
+  });
+
+  }
+  listScrollController.animateTo(0.0, duration: Duration(milliseconds: 300), curve: Curves.easeOut);
+
+  }
 }
 
 class Presentmessage extends StatelessWidget {
   final String message;
   final bool notme;
   final bool delivered;
+  final String time;
    Presentmessage({
     Key key,
     this.delivered,
     this.message,
-    this.notme
+    this.notme,
+    this.time,
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return Bubble(message: message,notMe: notme,delivered: delivered,);
+    return Bubble(message: message,notMe: notme,delivered: delivered,time: time,);
   }
 }
 
 class Bubble extends StatelessWidget{
 
-  Bubble({this.message,this.notMe,this.delivered});
+  Bubble({this.message,this.notMe,this.delivered,this.time});
   final bool delivered;
   final bool notMe;
   final String message;
+  final String time;
   
   @override
   Widget build(BuildContext context) {
@@ -189,10 +315,10 @@ class Bubble extends StatelessWidget{
                     right: 0.0,
                     child: Row(
                       children: <Widget>[
-                        Text("11.00",
+                        Text(time,
                             style: TextStyle(
                               color: Colors.black38,
-                              fontSize: 10.0,
+                              fontSize: 8.0,
                             )),
                         SizedBox(width: 3.0),
                         Icon(
@@ -209,4 +335,19 @@ class Bubble extends StatelessWidget{
       ],
     );
   }
+}
+String time() {
+ String value = DateTime.now().toString().split(" ")[1].substring(0,5);
+ if(int.parse(value.substring(0,2))>=12)
+ {
+   return(int.parse(value.substring(0,2))==12?
+   (int.parse(value.substring(0,2))).toString() +"${value.substring(2,5)}" +" PM":
+   (int.parse(value.substring(0,2))-12).toString() +"${value.substring(2,5)}" +" PM");
+ }
+ else
+ {
+   return(int.parse(value.substring(0,2))==00?
+   (int.parse(value.substring(0,2))+12).toString() +"${value.substring(2,5)}" +" AM":
+   (int.parse(value.substring(0,2))).toString() +"${value.substring(2,5)}" +" AM");
+ }
 }

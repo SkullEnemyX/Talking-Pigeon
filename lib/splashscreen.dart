@@ -11,8 +11,7 @@ class SplashScreen extends StatelessWidget {
       title: "The Talking Pigeon",
       debugShowCheckedModeBanner: false,
       home: new SplashWallpaper(),
-      routes: <String,WidgetBuilder>
-      {
+      routes: <String, WidgetBuilder>{
         "/sign": (BuildContext context) => new HomeScreen(),
         "/splash": (BuildContext context) => new SplashScreen()
       },
@@ -26,29 +25,24 @@ class SplashX extends StatefulWidget {
 }
 
 class _SplashXState extends State<SplashX> {
-
-  Future checkSeen() async
-  {
+  Future checkSeen() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    bool _seen = (prefs.getBool('seen')?? false);
+    bool _seen = (prefs.getBool('seen') ?? false);
 
-    if(_seen)
-    {
+    if (_seen) {
       Navigator.of(context).pushReplacementNamed("/splash");
-    }
-    else
-    {
+    } else {
       prefs.setBool('seen', true);
       Navigator.of(context).pushNamed("/sign");
-     }
+    }
   }
 
   @override
-    void initState() {
-      // TODO: implement initState
-      super.initState();
-      checkSeen();
-    }
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    checkSeen();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -61,33 +55,30 @@ class SplashWallpaper extends StatefulWidget {
   _SplashWallpaperState createState() => _SplashWallpaperState();
 }
 
-class _SplashWallpaperState extends State<SplashWallpaper> with SingleTickerProviderStateMixin{
-
+class _SplashWallpaperState extends State<SplashWallpaper>
+    with SingleTickerProviderStateMixin {
   AnimationController _iconAnimationController;
   Animation<double> _iconAnimation;
 
   @override
-    void initState() {
-      // TODO: implement initState
-      super.initState();
-      _iconAnimationController =new AnimationController(
-        vsync: this,
-        duration: new Duration(milliseconds: 4000)
-      );
-      _iconAnimation = new CurvedAnimation(
-        parent: _iconAnimationController,
-        curve: Curves.bounceOut
-      );
-      _iconAnimation.addListener(() => this.setState((){}));
-      _iconAnimationController.forward();
-       Timer(Duration(seconds: 3), ()=>Navigator.of(context).pushReplacementNamed("/sign"));
-    }
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    _iconAnimationController = new AnimationController(
+        vsync: this, duration: new Duration(milliseconds: 4000));
+    _iconAnimation = new CurvedAnimation(
+        parent: _iconAnimationController, curve: Curves.bounceOut);
+    _iconAnimation.addListener(() => this.setState(() {}));
+    _iconAnimationController.forward();
+    Timer(Duration(seconds: 3),
+        () => Navigator.of(context).pushReplacementNamed("/sign"));
+  }
 
-    @override
-      void dispose() {
-        _iconAnimationController.dispose();
-        super.dispose();
-      }
+  @override
+  void dispose() {
+    _iconAnimationController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -95,13 +86,13 @@ class _SplashWallpaperState extends State<SplashWallpaper> with SingleTickerProv
       body: Stack(
         fit: StackFit.expand,
         children: <Widget>[
-        Container(
-          child: new Image(
-          image: new AssetImage("assets/wally-1.jpg"),
-          fit: BoxFit.cover,
-          color: Colors.black54,
-          colorBlendMode: BlendMode.darken,
-          ),
+          Container(
+            child: new Image(
+              image: new AssetImage("assets/wally-1.jpg"),
+              fit: BoxFit.cover,
+              color: Colors.black54,
+              colorBlendMode: BlendMode.darken,
+            ),
           ),
           Column(
             mainAxisAlignment: MainAxisAlignment.start,
@@ -116,20 +107,26 @@ class _SplashWallpaperState extends State<SplashWallpaper> with SingleTickerProv
                         padding: const EdgeInsets.symmetric(vertical: 30.0),
                       ),
                       CircleAvatar(
-                       child: new Image(
-                         image: new AssetImage("assets/logo.png"),
+                        child: new Image(
+                          image: new AssetImage("assets/logo.png"),
                           width: _iconAnimation.value * 100,
                           height: _iconAnimation.value * 100,
-                          ), 
-                       radius: 70.0,
-                       backgroundColor: Color(0xFF27E9E1),
+                        ),
+                        radius: 70.0,
+                        backgroundColor: Color(0xFF27E9E1),
                       ),
-                      Padding(padding: const EdgeInsets.symmetric(vertical: 20.0),),
-                      new Text("The Talking Pigeon",style: TextStyle(fontWeight: FontWeight.bold,
-                      fontSize: 30.0,
-                      color: Colors.white,
-                      fontFamily: 'cassandra',
-                      letterSpacing: 2.0),)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 20.0),
+                      ),
+                      new Text(
+                        "The Talking Pigeon",
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 30.0,
+                            color: Colors.white,
+                            fontFamily: 'cassandra',
+                            letterSpacing: 2.0),
+                      )
                     ],
                   ),
                 ),
@@ -151,7 +148,8 @@ class _SplashWallpaperState extends State<SplashWallpaper> with SingleTickerProv
                         padding: const EdgeInsets.all(20.0),
                       ),
                       Text(
-                        "Made with love in India",style: TextStyle(
+                        "Made with love in India",
+                        style: TextStyle(
                           color: Colors.white,
                           fontFamily: 'tomatoes',
                           fontSize: 17.0,

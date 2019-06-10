@@ -222,6 +222,7 @@ class _ChatScreenState extends State<ChatScreen> {
                                onTap:(){
                                  //Add change if new list to be made of recent contact. 
                                  Navigator.push(context, MaterialPageRoute(builder: (context)=>ChatPage(
+                                 name: globalUsername,
                                  greet: greet,
                                  background: background,
                                  frienduid: snapshot.data[i],)));},
@@ -549,6 +550,7 @@ Future<List<String>> checkpart2(String s) async{
       InkWell(
         splashColor: Color(0xFF27E9E1),
         onTap: ()=> Navigator.push(context, MaterialPageRoute(builder: (context)=>ChatPage(
+                           name: globalUsername,
                            greet: greet,
                            background: background,
                            frienduid: snapshot.data[index],))),
@@ -592,6 +594,7 @@ Future<List<String>> checkpart2(String s) async{
       InkWell(
         splashColor: Color(0xFF27E9E1),
         onTap: () async { Navigator.push(context, MaterialPageRoute(builder: (context)=>ChatPage(
+                           name: globalUsername,
                            greet: greet,
                            background: background,
                            frienduid: snapshot.data[index],)));
