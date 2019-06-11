@@ -39,7 +39,6 @@ class _SplashXState extends State<SplashX> {
 
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
     checkSeen();
   }
@@ -62,7 +61,6 @@ class _SplashWallpaperState extends State<SplashWallpaper>
 
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
     _iconAnimationController = new AnimationController(
         vsync: this, duration: new Duration(milliseconds: 4000));

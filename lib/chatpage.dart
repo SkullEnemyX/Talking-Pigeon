@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter_spinkit/flutter_spinkit.dart';
 
 class ChatPage extends StatefulWidget {
   final Color greet;
@@ -26,13 +25,12 @@ class _ChatPageState extends State<ChatPage> {
 
   @override
     void dispose() {
-      // TODO: implement dispose
       super.dispose();
       textEditingController.dispose();
     }
 
   final TextEditingController textEditingController = new TextEditingController();
-  var listMsg = [];
+  List listMsg = [];
   String msg;
   final ScrollController listScrollController = new ScrollController();
 
@@ -98,19 +96,18 @@ class _ChatPageState extends State<ChatPage> {
                 builder: (context,snapshot)
                 {
                   if(!snapshot.hasData) return CircularProgressIndicator();
-                  if(snapshot.data.documents.length!=null)
+                  else{
+                  if(snapshot.data.documents.length>=0)
                   {
                     return ListView.builder(
                       reverse: true,
-                      itemCount: snapshot.data.documents.length,
+                      itemCount: snapshot.data.documents?.length,
                       controller: listScrollController,
                       itemBuilder: (context,i)
                       {
+                       print(i);
                        try{
                         DocumentSnapshot document = snapshot.data.documents[i];
-                        //counter = counter + 1 ;
-                        print(snapshot.data.documents.length);
-                        //setState(() {});
                         return Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: <Widget>[
@@ -123,25 +120,16 @@ class _ChatPageState extends State<ChatPage> {
                        }
                        catch(RangeError)
                     {
-                      //querySnapShotCounter = querySnapShotCounter+1;
-                      //i+=1;
                      throw(RangeError);
-
                     }
                         }
                     );
                   }
+                  
                   else
                   {
                     return Container();
-                  }
-                  if(snapshot.connectionState == ConnectionState.waiting)
-                  {
-                    return Center(child: SpinKitDoubleBounce(
-                          size: 60.0,
-                          color: Color(0xFF27E9E1),
-                        ));
-                  }
+                  }}
                 }
               ),
             ),
@@ -271,7 +259,6 @@ class Bubble extends StatelessWidget{
   @override
   Widget build(BuildContext context) {
     final bg = notMe ? Colors.white : Color(0xFF27E9E1).withOpacity(0.8);
-    //final String message = "Hello my name is Skull and I am awesome";
     final align = notMe ? CrossAxisAlignment.start : CrossAxisAlignment.end;
     final icon = delivered ? Icons.done_all : Icons.done;
     final double width = MediaQuery.of(context).size.width*0.75;

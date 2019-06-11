@@ -63,7 +63,6 @@ class _ChatScreenState extends State<ChatScreen> {
     setState(() {
       _loadingInProgress = false;
     });
-    print(name);
   });}
 
     Future<List<String>> friendfunc() async{
@@ -80,7 +79,6 @@ class _ChatScreenState extends State<ChatScreen> {
       flist.add(friendlist[i].toString());
     }
     friendlist = null;
-    print(flist);
     return flist;
   }
   
@@ -194,7 +192,6 @@ class _ChatScreenState extends State<ChatScreen> {
                         "friends" : list,
                             };
                       setState(() {});
-                      print(list);
                       await Firestore.instance.document("Users/$globalUsername").updateData(peopledata).whenComplete(()
                       {}).catchError((e)=>print(e));
                           
@@ -323,37 +320,23 @@ class _ChatScreenState extends State<ChatScreen> {
 
   void darkTheme() async
   {
-   
-    //print(gvalue);
-    //gvalue = await getValue();
     
       if(gvalue == 0)
       {
-        // print("For Dark theme");
-        // print(gvalue);
         greet = Color(0xFFFFFFFF);
         background = Color(0xFF242424);
         theme = "Light Theme";
         
         gvalue = 1;
-        //print(gvalue);
 
       }
       else if(gvalue==1)
       {
-        // print("For light");
-        // print(gvalue);
         greet = Color(0xFF242424);
         background = Color(0xFFFFFFF);
         theme = "Dark Theme";
          gvalue = 0;
-        // print(gvalue);
-        
-        
       }   
-      
-     //
-      // setValue();
       setState(() {
                   
                 }); 
@@ -364,8 +347,6 @@ class _ChatScreenState extends State<ChatScreen> {
     if(value=='a')
     {
       darkTheme();
-      print(globalUsername);
-      print("Hello");
     }
     else if(value == 'b')
     {
@@ -603,11 +584,9 @@ Future<List<String>> checkpart2(String s) async{
                    {
                      list.add(snapshot.data[index].toString());
                      DocumentReference ref = Firestore.instance.document("Users/$globalUsername");
-                     print(list);
                      Map<String,dynamic> peopledata = <String,dynamic>{
                       "friends" : list,
                             };
-                      print(list);
                       await ref.updateData(peopledata).whenComplete(()
                       {}).catchError((e)=>print(e));
                    }
