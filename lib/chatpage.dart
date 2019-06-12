@@ -20,7 +20,9 @@ class _ChatPageState extends State<ChatPage> {
     void initState() {
       super.initState();
       textEditingController.clear();
-      snap = snapshotReturn();
+      setState(() {
+        snap = snapshotReturn();
+      });
     }
 
   @override
@@ -34,14 +36,12 @@ class _ChatPageState extends State<ChatPage> {
   String msg;
   final ScrollController listScrollController = new ScrollController();
 
-
-
-  messageList(String msg){
+  messageList(String msg,bool notme,String timestamp){
     if(listMsg.length>=20)
     {
       listMsg.removeAt(0);
     }
-    listMsg.add([msg,false,false]);
+    listMsg.add([msg,notme,timestamp]);
     return listMsg;
   }
 
@@ -79,7 +79,11 @@ class _ChatPageState extends State<ChatPage> {
         style: TextStyle(fontSize: 23.0,color: widget.greet),),
         leading: new IconButton(
           icon: Icon(Icons.arrow_back,color: Color(0xFF27E9E1),),
-          onPressed: (){
+          onPressed: () async{
+            // await Firestore.instance.collection("messages").document(returnGroupId(widget.name, widget.frienduid))
+            // .collection(returnGroupId(widget.name, widget.frienduid)).getDocuments().then((snapshot){
+              
+            // });
             Navigator.pop(context);
           },
         ),
@@ -95,41 +99,42 @@ class _ChatPageState extends State<ChatPage> {
                 stream: snap,
                 builder: (context,snapshot)
                 {
+                  listMsg = [];
                   if(!snapshot.hasData) return CircularProgressIndicator();
                   else{
-                  if(snapshot.data.documents.length>=0)
-                  {
+                    List<DocumentSnapshot> document = snapshot.data.documents;
+                    for(int i=0;i<document.length;i++)
+                    {
+                      listMsg.add([document[i]["content"],
+                      document[i]["isMe"].compareTo(widget.name)==0?false:true,
+                      document[i]["timestamp"]]);
+                    }
                     return ListView.builder(
                       reverse: true,
-                      itemCount: snapshot.data.documents?.length,
+                      itemCount: snapshot.data.documents.length,
                       controller: listScrollController,
                       itemBuilder: (context,i)
                       {
-                       print(i);
                        try{
-                        DocumentSnapshot document = snapshot.data.documents[i];
                         return Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: <Widget>[
-                                  new Presentmessage(message: document["content"],
-                                  notme: document["isMe"].compareTo(widget.name)==0?false:true,
-                                  delivered: listMsg[i][2],
-                                  time: document["timestamp"],),
+                                  Presentmessage(message: listMsg[i][0],
+                                  notme: listMsg[i][1],
+                                  delivered: false,
+                                  time: listMsg[i][2],),
                             ],
                           );
                        }
                        catch(RangeError)
                     {
-                     throw(RangeError);
+                     return Container(
+                       color: Colors.white,
+                     );
                     }
                         }
                     );
                   }
-                  
-                  else
-                  {
-                    return Container();
-                  }}
                 }
               ),
             ),
@@ -166,7 +171,7 @@ class _ChatPageState extends State<ChatPage> {
                                         filled: true,
                                         border: InputBorder.none,
                                         fillColor: Colors.transparent,
-                                        hintText: "Type a message"
+                                        hintText: "Type a message..."
                                         ,suffixIcon: IconButton(
                                           icon: Icon(Icons.send,size: 25.0,),
                                           color: Colors.black,
@@ -184,15 +189,6 @@ class _ChatPageState extends State<ChatPage> {
             ),
           ],
         ),
-        // child: new Column(
-        //   mainAxisAlignment: MainAxisAlignment.center,
-        //   children: <Widget>[
-            
-        //   // new TextFormField(
-        //   //   keyboardType: TextInputType.text,
-        //   // ) 
-        //   ],
-        // ),
       ),
 
     );
@@ -201,8 +197,10 @@ class _ChatPageState extends State<ChatPage> {
   void sendMessage() {
   if(textEditingController.value.text!="")
   {
-  messageList(textEditingController.value.text);
-  //Refreshing widget when new message is sent or appears.
+  setState(() {
+   messageList(textEditingController.value.text,false,time());
+  //Refreshing widget when new message is sent or appears. 
+  });
   var documentReference = Firestore.instance
   .collection('messages')
   .document(returnGroupId(widget.name, widget.frienduid))
@@ -224,8 +222,9 @@ class _ChatPageState extends State<ChatPage> {
   });
 
   }
-  listScrollController.animateTo(0.0, duration: Duration(milliseconds: 300), curve: Curves.easeOut);
-
+  setState(() {
+   listScrollController.animateTo(0.0, duration: Duration(milliseconds: 300), curve: Curves.easeOut); 
+  });
   }
 }
 

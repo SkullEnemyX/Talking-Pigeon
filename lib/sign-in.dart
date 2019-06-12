@@ -168,7 +168,6 @@ class _SignupState extends State<Signup> with SingleTickerProviderStateMixin {
   void performsignup() async {
     final DocumentReference documentReference =
         Firestore.instance.document("Users/${userData.uid}");
-    //final DocumentReference documentReference2 = Firestore.instance.document("People/People");
     List<String> error;
     if (userData.email != null &&
         userData.password != null &&
@@ -437,7 +436,6 @@ class _SigninState extends State<Signin> with SingleTickerProviderStateMixin {
       }
     } catch (e) {
       setState(() {});
-      //print('Error: $e');
       error = e.toString().split("(");
       error = error[1].toString().split(",");
       final snackbar2 = new SnackBar(

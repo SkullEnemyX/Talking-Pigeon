@@ -32,6 +32,8 @@ class _ChatScreenState extends State<ChatScreen> {
    Userauthentication userAuth = new Userauthentication();
    UserData userData = new UserData();
    bool _loadingInProgress;
+   String lastMessage;
+   String friendid;
 
 
   @override
@@ -47,6 +49,7 @@ class _ChatScreenState extends State<ChatScreen> {
     fetchTime();
     darkTheme();
     friendfunc();
+
   }
 
 
@@ -79,25 +82,32 @@ class _ChatScreenState extends State<ChatScreen> {
       flist.add(friendlist[i].toString());
     }
     friendlist = null;
+    print(flist);
+
     return flist;
   }
-  
 
-  // friendName() async{
-  //   friendfunc();
-  //   fname = [];
-  //   for(int i=0;i<flist.length;i++)
-  //   {
-  //     await Firestore.instance.document("Users/${flist[i]}").get().then((snap)
-  //     {
-  //       if(snap.exists)
-  //       {
-  //         fname.add(snap.data["name"]);
-  //       }
-  //     });
-  //   }
+  returnGroupId(String myid,String friendid){
+    if(myid.hashCode>=friendid.hashCode)
+    {
+      return(myid.hashCode.toString()+friendid.hashCode.toString());
+    }
+    else
+    {
+      return(friendid.hashCode.toString()+myid.hashCode.toString());
+    }
+  }
 
-  // }
+   snapshotReturn(String friendid){
+    var snap = Firestore.instance
+                                          .collection('messages')
+                                          .document(returnGroupId(name, friendid))
+                                          .collection(returnGroupId(name,friendid))
+                                          .orderBy('timestamp', descending: true)
+                                          .limit(1)
+                                          .getDocuments();
+    return snap;
+  }
 
   Widget _buildBody() {
     if (_loadingInProgress==true) {
@@ -167,105 +177,105 @@ class _ChatScreenState extends State<ChatScreen> {
                   ),
                        Expanded(
                     child: FutureBuilder(
-                      future: friendfunc(),
-                      builder: (BuildContext context,AsyncSnapshot snapshot)
-                      {
-                    if(snapshot.connectionState == ConnectionState.done)
-                    if(snapshot.data!=null && snapshot.data.isEmpty==false)
-                     return ListView.builder(
-                     itemCount: snapshot.data?.length??0,
-                     itemBuilder: (context,i)=> 
-                     new Column(
-                       children: <Widget>[
-                       Dismissible(
-                         key: new Key(snapshot.data[i]),
-                         direction: DismissDirection.endToStart,
-                         background: Container(
-                           color: Colors.red,
-                           height: 20.0,
-                           child: Center(child: Text("Remove friend: ${snapshot.data[i]}",style: TextStyle(fontWeight: FontWeight.bold),),),
-                         ),
-                         onDismissed: (direction) async {
-                          var list = await friendfunc();
-                          list.removeAt(i);
-                          Map<String,dynamic> peopledata = <String,dynamic>{
-                        "friends" : list,
-                            };
-                      setState(() {});
-                      await Firestore.instance.document("Users/$globalUsername").updateData(peopledata).whenComplete(()
-                      {}).catchError((e)=>print(e));
-                          
-                         },
-                          child: Column(
-                            children: <Widget>[
-                              new ListTile(
-                               leading: Container(
-                                 decoration: BoxDecoration(
-                                   border: Border.all(
-                                     width: 2.0,
-                                     color: Color(0xFF27E9E1),
-                                   ),
-                                   shape: BoxShape.circle
-                                 ),
-                                 child:
-                                   new CircleAvatar(
-                                     radius: 23.0,
-                                     backgroundColor: background,
-                                     foregroundColor: Color(0xFF27E9E1),
-                                     child: Text(snapshot.data[i][0].toUpperCase(),style: TextStyle(fontWeight: FontWeight.bold,fontSize: 20.0),),
-                                   ),
-
-                               ),
-                               onTap:(){
-                                 //Add change if new list to be made of recent contact. 
-                                 Navigator.push(context, MaterialPageRoute(builder: (context)=>ChatPage(
-                                 name: globalUsername,
-                                 greet: greet,
-                                 background: background,
-                                 frienduid: snapshot.data[i],)));},
-                               title: Text(
-                                     snapshot.data[i],
-                                     style: TextStyle(
-                                       color: greet,
-                                       fontSize: 18.0,
-                                       fontWeight: FontWeight.bold
+                          future: friendfunc(),
+                          builder: (BuildContext context,AsyncSnapshot snapshot)
+                          {
+                        if(snapshot.connectionState == ConnectionState.done)
+                        if(snapshot.data!=null && snapshot.data.isEmpty==false)
+                         return ListView.builder(
+                         itemCount: snapshot.data?.length??0,
+                         itemBuilder: (context,i)=> 
+                         new Column(
+                           children: <Widget>[
+                           Dismissible(
+                             key: new Key(snapshot.data[i]),
+                             direction: DismissDirection.endToStart,
+                             background: Container(
+                               color: Colors.red,
+                               height: 20.0,
+                               child: Center(child: Text("Remove friend: ${snapshot.data[i]}",style: TextStyle(fontWeight: FontWeight.bold),),),
+                             ),
+                             onDismissed: (direction) async {
+                              var list = await friendfunc();
+                              list.removeAt(i);
+                              Map<String,dynamic> peopledata = <String,dynamic>{
+                            "friends" : list,
+                                };
+                          setState(() {});
+                          await Firestore.instance.document("Users/$globalUsername").updateData(peopledata).whenComplete(()
+                          {}).catchError((e)=>print(e));
+                              
+                             },
+                              child: Column(
+                                children: <Widget>[
+                                  new ListTile(
+                                   leading: Container(
+                                     decoration: BoxDecoration(
+                                       border: Border.all(
+                                         width: 2.0,
+                                         color: Color(0xFF27E9E1),
+                                       ),
+                                       shape: BoxShape.circle
                                      ),
-                               ),
-                               subtitle: Container(
-                                 padding: EdgeInsets.only(top: 5.0),
-                                 child: new Text(
-                                   "Dummy Text",
-                                   style: TextStyle(
-                                     color: Colors.grey,
-                                     fontSize: 13.0,
-                                   ),
-                                 ),
-                               ),
-                         ),
-                         
-                            ],
-                          ),
-                       
-                        ),
-                       ],
-                     ),
-                                      );
-                      else
-                      {
+                                     child:
+                                       new CircleAvatar(
+                                         radius: 23.0,
+                                         backgroundColor: background,
+                                         foregroundColor: Color(0xFF27E9E1),
+                                         child: Text(snapshot.data[i][0].toUpperCase(),style: TextStyle(fontWeight: FontWeight.bold,fontSize: 20.0),),
+                                       ),
 
-                        return Center(
-                         child: Text("Add new friends to start the conversation",style: TextStyle(color: greet,),),
-                        );
-                      }
-                      else
-                      {
-                        return Center(child: SpinKitDoubleBounce(
-                          size: 60.0,
-                          color: Color(0xFF27E9E1),
-                        ));
-                      }
-                      }
-                    )
+                                   ),
+                                   onTap:(){
+                                     //Add change if new list to be made of recent contact. 
+                                     Navigator.push(context, MaterialPageRoute(builder: (context)=>ChatPage(
+                                     name: globalUsername,
+                                     greet: greet,
+                                     background: background,
+                                     frienduid: snapshot.data[i],)));},
+                                   title: Text(
+                                         snapshot.data[i],
+                                         style: TextStyle(
+                                           color: greet,
+                                           fontSize: 18.0,
+                                           fontWeight: FontWeight.bold
+                                         ),
+                                   ),
+                                   subtitle: Container(
+                                     padding: EdgeInsets.only(top: 5.0),
+                                     child: new Text(
+                                       "$lastMessage",
+                                       style: TextStyle(
+                                         color: Colors.grey,
+                                         fontSize: 13.0,
+                                       ),
+                                     ),
+                                   ),
+                             ),
+                             
+                                ],
+                              ),
+                           
+                            ),
+                           ],
+                         ),
+                                          );
+                          else
+                          {
+
+                            return Center(
+                             child: Text("Add new friends to start the conversation",style: TextStyle(color: greet,),),
+                            );
+                          }
+                          else
+                          {
+                            return Center(child: SpinKitDoubleBounce(
+                              size: 60.0,
+                              color: Color(0xFF27E9E1),
+                            ));
+                          }
+                          }
+                        )
                  )
                                    ],
                                  ),
