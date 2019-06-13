@@ -52,7 +52,6 @@ class _ChatScreenState extends State<ChatScreen> {
 
   }
 
-
     Future<Null> getSharedPrefs() async {
     _loadingInProgress = true;
     final DocumentReference documentReference = Firestore.instance.document("Users/${widget.username}");
@@ -84,7 +83,7 @@ class _ChatScreenState extends State<ChatScreen> {
     friendlist = null;
     print(flist);
 
-    return flist;
+    return flist.reversed.toList();
   }
 
   returnGroupId(String myid,String friendid){
@@ -98,14 +97,13 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
-   snapshotReturn(String friendid){
-    var snap = Firestore.instance
-                                          .collection('messages')
-                                          .document(returnGroupId(name, friendid))
-                                          .collection(returnGroupId(name,friendid))
+  Stream<QuerySnapshot> fetchMessages(String friendID) {
+    Stream<QuerySnapshot> snap = Firestore.instance.collection('messages')
+                                          .document(returnGroupId(globalUsername, friendID))
+                                          .collection(returnGroupId(globalUsername,friendID))
                                           .orderBy('timestamp', descending: true)
                                           .limit(1)
-                                          .getDocuments();
+                                          .snapshots();
     return snap;
   }
 
@@ -126,7 +124,6 @@ class _ChatScreenState extends State<ChatScreen> {
             Text(
               "TALKING PIGEON",style: TextStyle(fontSize: 28.0,color: greet,wordSpacing: 5.0),
             )
-
           ],
         )),
       );
@@ -181,11 +178,11 @@ class _ChatScreenState extends State<ChatScreen> {
                           builder: (BuildContext context,AsyncSnapshot snapshot)
                           {
                         if(snapshot.connectionState == ConnectionState.done)
-                        if(snapshot.data!=null && snapshot.data.isEmpty==false)
+                        if(snapshot.hasData){
                          return ListView.builder(
                          itemCount: snapshot.data?.length??0,
-                         itemBuilder: (context,i)=> 
-                         new Column(
+                         itemBuilder: (context,i){
+                         return Column(
                            children: <Widget>[
                            Dismissible(
                              key: new Key(snapshot.data[i]),
@@ -208,58 +205,70 @@ class _ChatScreenState extends State<ChatScreen> {
                              },
                               child: Column(
                                 children: <Widget>[
-                                  new ListTile(
-                                   leading: Container(
-                                     decoration: BoxDecoration(
-                                       border: Border.all(
-                                         width: 2.0,
-                                         color: Color(0xFF27E9E1),
-                                       ),
-                                       shape: BoxShape.circle
-                                     ),
-                                     child:
-                                       new CircleAvatar(
-                                         radius: 23.0,
-                                         backgroundColor: background,
-                                         foregroundColor: Color(0xFF27E9E1),
-                                         child: Text(snapshot.data[i][0].toUpperCase(),style: TextStyle(fontWeight: FontWeight.bold,fontSize: 20.0),),
-                                       ),
-
-                                   ),
-                                   onTap:(){
-                                     //Add change if new list to be made of recent contact. 
-                                     Navigator.push(context, MaterialPageRoute(builder: (context)=>ChatPage(
-                                     name: globalUsername,
-                                     greet: greet,
-                                     background: background,
-                                     frienduid: snapshot.data[i],)));},
-                                   title: Text(
-                                         snapshot.data[i],
-                                         style: TextStyle(
-                                           color: greet,
-                                           fontSize: 18.0,
-                                           fontWeight: FontWeight.bold
+                                   StreamBuilder(
+                                     stream: fetchMessages(snapshot.data[i]),
+                                     builder: (context, snap) {
+                                       if(!snap.hasData) return Container();
+                                       else
+                                       {
+                                      var document = snap.data.documents;
+                                       lastMessage = document[0]["content"];
+                                       print(document[0]["timestamp"]);
+                                       return ListTile(
+                                      trailing: Text(document[0]["timestamp"]),
+                                       leading: Container(
+                                         decoration: BoxDecoration(
+                                           border: Border.all(
+                                             width: 2.0,
+                                             color: Color(0xFF27E9E1),
+                                           ),
+                                           shape: BoxShape.circle
                                          ),
-                                   ),
-                                   subtitle: Container(
-                                     padding: EdgeInsets.only(top: 5.0),
-                                     child: new Text(
-                                       "$lastMessage",
-                                       style: TextStyle(
-                                         color: Colors.grey,
-                                         fontSize: 13.0,
+                                         child:
+                                           new CircleAvatar(
+                                             radius: 25.0,
+                                             backgroundColor: background,
+                                             foregroundColor: Color(0xFF27E9E1),
+                                             child: Text(snapshot.data[i][0].toUpperCase(),style: TextStyle(fontWeight: FontWeight.bold,fontSize: 20.0),),
+                                           ),
+
                                        ),
-                                     ),
+                                       onTap:(){
+                                         //Add change if new list to be made of recent contact. 
+                                         Navigator.push(context, MaterialPageRoute(builder: (context)=>ChatPage(
+                                         name: globalUsername,
+                                         greet: greet,
+                                         background: background,
+                                         frienduid: snapshot.data[i],)));},
+                                       title: Text(
+                                             snapshot.data[i],
+                                             style: TextStyle(
+                                               color: greet,
+                                               fontSize: 20.0,
+                                               fontWeight: FontWeight.bold
+                                             ),
+                                       ),
+                                       subtitle: Container(
+                                         padding: EdgeInsets.only(top: 5.0),
+                                         child: new Text(
+                                           "$lastMessage",
+                                           style: TextStyle(
+                                             color: Colors.grey,
+                                             fontSize: 15.0,
+                                           ),
+                                         ),
+                                       ),
+                             );}
+                                     }
                                    ),
-                             ),
                              
                                 ],
                               ),
                            
                             ),
                            ],
-                         ),
-                                          );
+                         );}
+                        );}
                           else
                           {
 
@@ -285,18 +294,6 @@ class _ChatScreenState extends State<ChatScreen> {
                              ),
                            ) ;
     }}
-  //  getValue() async
-  // {
-  //   SharedPreferences prefs = await SharedPreferences.getInstance();
-  //   gvalue = prefs.getInt('gvalue') ?? 0;
-  //   return gvalue;
-
-  // }
-
-  //  setValue() async{
-  //   SharedPreferences prefs = await SharedPreferences.getInstance();
-  //    prefs.setInt('gvalue', gvalue);
-  // }
 
   fetchTime()
   {
@@ -330,25 +327,19 @@ class _ChatScreenState extends State<ChatScreen> {
 
   void darkTheme() async
   {
-    
-      if(gvalue == 0)
-      {
+      setState(() {
+        if(gvalue == 0){
         greet = Color(0xFFFFFFFF);
         background = Color(0xFF242424);
         theme = "Light Theme";
-        
         gvalue = 1;
-
       }
-      else if(gvalue==1)
-      {
+      else if(gvalue==1){
         greet = Color(0xFF242424);
         background = Color(0xFFFFFFF);
         theme = "Dark Theme";
          gvalue = 0;
       }   
-      setState(() {
-                  
                 }); 
   }
 

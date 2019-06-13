@@ -62,7 +62,7 @@ class _ChatPageState extends State<ChatPage> {
                                           .document(returnGroupId(widget.name, widget.frienduid))
                                           .collection(returnGroupId(widget.name, widget.frienduid))
                                           .orderBy('timestamp', descending: true)
-                                          .limit(30)
+                                          .limit(50)
                                           .snapshots();
     return snap;
   }
@@ -80,10 +80,6 @@ class _ChatPageState extends State<ChatPage> {
         leading: new IconButton(
           icon: Icon(Icons.arrow_back,color: Color(0xFF27E9E1),),
           onPressed: () async{
-            // await Firestore.instance.collection("messages").document(returnGroupId(widget.name, widget.frienduid))
-            // .collection(returnGroupId(widget.name, widget.frienduid)).getDocuments().then((snapshot){
-              
-            // });
             Navigator.pop(context);
           },
         ),
@@ -103,6 +99,7 @@ class _ChatPageState extends State<ChatPage> {
                   if(!snapshot.hasData) return CircularProgressIndicator();
                   else{
                     List<DocumentSnapshot> document = snapshot.data.documents;
+                    print(document.length);
                     for(int i=0;i<document.length;i++)
                     {
                       listMsg.add([document[i]["content"],
@@ -121,7 +118,7 @@ class _ChatPageState extends State<ChatPage> {
                             children: <Widget>[
                                   Presentmessage(message: listMsg[i][0],
                                   notme: listMsg[i][1],
-                                  delivered: false,
+                                  delivered: true,
                                   time: listMsg[i][2],),
                             ],
                           );
@@ -179,9 +176,9 @@ class _ChatPageState extends State<ChatPage> {
                                           onPressed: sendMessage,
                                         )
                                       ),
-                                      //scrollPadding: EdgeInsets.all(20.0),
                                       controller: textEditingController,
-                                      keyboardType: TextInputType.text,
+                                      keyboardType: TextInputType.multiline,
+                                      textCapitalization: TextCapitalization.words,
                                       style: TextStyle(color: widget.background == Color(0xFF242424)?widget.background:widget.greet,fontSize: 18.0,),
                                       onSaved: (val)=> msg = val,
                                     ),
@@ -293,7 +290,7 @@ class Bubble extends StatelessWidget{
               child: Stack(
                 children: <Widget>[
                   Padding(
-                    padding: EdgeInsets.only(right: 48.0,bottom: 5.0),
+                    padding: EdgeInsets.only(right: 48.0,bottom: 12.0),
                     child: Text(message,style: TextStyle(fontSize: 16.0),),
                   ),
                   Positioned(
@@ -324,16 +321,18 @@ class Bubble extends StatelessWidget{
 }
 String time() {
  String value = DateTime.now().toString().split(" ")[1].substring(0,5);
+ String fullDate = DateTime.now().toString().substring(0,10);
+ print(fullDate);
  if(int.parse(value.substring(0,2))>=12)
  {
    return(int.parse(value.substring(0,2))==12?
-   (int.parse(value.substring(0,2))).toString() +"${value.substring(2,5)}" +" PM":
-   (int.parse(value.substring(0,2))-12).toString() +"${value.substring(2,5)}" +" PM");
+   (int.parse(value.substring(0,2))).toString() +"${value.substring(2,5)}" +" PM " + fullDate:
+   (int.parse(value.substring(0,2))-12).toString() +"${value.substring(2,5)}" +" PM " + fullDate);
  }
  else
  {
    return(int.parse(value.substring(0,2))==00?
-   (int.parse(value.substring(0,2))+12).toString() +"${value.substring(2,5)}" +" AM":
-   (int.parse(value.substring(0,2))).toString() +"${value.substring(2,5)}" +" AM");
+   (int.parse(value.substring(0,2))+12).toString() +"${value.substring(2,5)}" +" AM " + fullDate:
+   (int.parse(value.substring(0,2))).toString() +"${value.substring(2,5)}" +" AM " + fullDate);
  }
 }
