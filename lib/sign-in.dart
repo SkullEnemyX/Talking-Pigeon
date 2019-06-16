@@ -5,12 +5,11 @@ import 'package:talking_pigeon_x/chatscreen.dart';
 import 'authentication.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-TextEditingController tec;
-
 class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return new MaterialApp(
+      title: "Talking Pigeon",
       theme: new ThemeData(
         primarySwatch: Colors.teal,
       ),
@@ -24,10 +23,10 @@ class LoginScreen extends StatefulWidget {
   _LoginScreenState createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen>
-    with SingleTickerProviderStateMixin {
+class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStateMixin {
   final scaffoldKey = new GlobalKey<ScaffoldState>();
   TabController tabController;
+  TextEditingController tec;
 
   @override
   void initState() {
@@ -42,20 +41,17 @@ class _LoginScreenState extends State<LoginScreen>
     super.dispose();
   }
 
-//Just a snackbar. To remove once the validation of the login page is done.
-
   @override
   Widget build(BuildContext context) {
     return new Scaffold(
         appBar: new AppBar(
           bottomOpacity: 0.7,
+          centerTitle: true,
           title: new Text(
             "The Talking Pigeon",
             style: TextStyle(
-              fontFamily: 'aileron',
+              fontFamily: 'beauty',
               fontSize: 25.0,
-              //letterSpacing: 1.0,
-              ///fontWeight: FontWeight.bold,
               color: Colors.white.withOpacity(0.8),
             ),
           ),
@@ -105,6 +101,7 @@ class _SignupState extends State<Signup> with SingleTickerProviderStateMixin {
   Animation<double> buttonSqueezeAnimation;
   bool _isobs = true;
   Color _eyeBC = Colors.grey;
+  List<String> people = [];
 
   @override
   void initState() {
@@ -130,49 +127,53 @@ class _SignupState extends State<Signup> with SingleTickerProviderStateMixin {
     if (form.validate()) {
       form.save();
       performsignup();
-      //   //textcontrol();
     }
   }
 
-  List<String> people = [];
-  
-  check() async {
+  Future<int> addUserToPeopleDB() async {
     var temp;
-    people = [];
-    DocumentReference documentReference2 =
+    List<String> people = [];
+    int ifExist = 1;
+    //Checking condition whether the username exists already, firebase automatically checks whether the email is already used.
+    DocumentReference peopleDocument =
         Firestore.instance.document("People/People");
-
-    await documentReference2.get().then((onValue) {
-      temp = onValue.data["People"];
-      print(temp);
-      print("jaishreeram");
-      for (int i = 0; i < temp.length; i++) {
-        people.add(temp[i].toString());
+    await peopleDocument.get().then((snapshot) {
+      ifExist = snapshot.data.values.toList()[0].contains(userData.uid)?1:0;
+      if (ifExist == 1) {
+        final snackbar1 = new SnackBar(
+          content: Text(
+              "Username: ${userData.uid} already exists, please choose another one."),
+        );
+        Scaffold.of(context).showSnackBar(snackbar1);
+      } 
+      else {
+        //Code written below enters the users info into the People's database which consists of the list of user Talking Pigeon has.
+        temp = snapshot.data["People"];
+          print(temp);
+          for (int i = 0; i < temp.length; i++) {
+            people.add(temp[i].toString());
+          }
+        temp = null;
+        people.add("${userData.uid}"); //Add here what new content wants to be added.
+        Map<String, dynamic> peopledata = <String, dynamic>{
+          "People": people,
+        };
+        print(people);
+        peopleDocument.setData(peopledata).whenComplete((){
+          print("User appended");
+        });
       }
     });
-    temp = null;
-
-    people
-        .add("${userData.uid}"); //Add here what new content wants to be added.
-    Map<String, dynamic> peopledata = <String, dynamic>{
-      "People": people,
-    };
-    print(people);
-    await documentReference2
-        .setData(peopledata)
-        .whenComplete(() {})
-        .catchError((e) => print(e));
-    print(people);
+    return ifExist;
   }
 
   void performsignup() async {
     final DocumentReference documentReference =
         Firestore.instance.document("Users/${userData.uid}");
     List<String> error;
-    if (userData.email != null &&
-        userData.password != null &&
-        userData.displayName != null) {
-      check();
+    if (userData.email != null && userData.password != null && userData.displayName != null) {
+      int ifExist = await addUserToPeopleDB();
+      if(ifExist == 0){
       try {
         progress = 1;
         setState(() {});
@@ -184,13 +185,13 @@ class _SignupState extends State<Signup> with SingleTickerProviderStateMixin {
           "friends": []
         };
         documentReference.setData(userinfo).whenComplete(() {
-          print("Document Added");
-        }).catchError((e) => print(e));
-        final snackbar1 = new SnackBar(
+         final snackbar1 = new SnackBar(
           content: Text(
-              "Sign up successful\nName: ${userData.displayName}\nEmail: ${userData.email}"), //replace name with database name.
+              "Welcome, ${userData.displayName}"), //replace name with database name.
         );
         Scaffold.of(context).showSnackBar(snackbar1);
+        }).catchError((e) => print(e));
+        
         Timer(
             Duration(milliseconds: 400),
             () => Navigator.pushReplacement(
@@ -206,10 +207,10 @@ class _SignupState extends State<Signup> with SingleTickerProviderStateMixin {
         error = e.toString().split("(");
         error = error[1].toString().split(",");
         final snackbar2 = new SnackBar(
-          content: Text("Sign up failed!\nReason: ${error[1].toString()}"),
+          content: Text("Sign up failed because${error[1].toLowerCase().toString()}"),
         );
         Scaffold.of(context).showSnackBar(snackbar2);
-      }
+      }}
     } else {
       progress = 0;
       setState(() {});
@@ -379,7 +380,7 @@ class _SigninState extends State<Signin> with SingleTickerProviderStateMixin {
   Userauthentication userAuth = new Userauthentication();
   UserData userData = new UserData();
 
-    void initState() {
+  void initState() {
     super.initState();
     _loginButtonController = new AnimationController(
         duration: new Duration(milliseconds: 3000), vsync: this);

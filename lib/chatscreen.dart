@@ -86,6 +86,12 @@ class _ChatScreenState extends State<ChatScreen> {
     return flist.reversed.toList();
   }
 
+  Future<String> fetchName() async{
+    String friendName;
+    
+    return friendName;
+  }
+
   returnGroupId(String myid,String friendid){
     if(myid.hashCode>=friendid.hashCode)
     {
@@ -182,6 +188,13 @@ class _ChatScreenState extends State<ChatScreen> {
                          return ListView.builder(
                          itemCount: snapshot.data?.length??0,
                          itemBuilder: (context,i){
+                         String friendName = "";
+                         Firestore.instance.document("Users/${snapshot.data[i]}").get().then((val)
+                         {  
+                           if(val.exists){
+                             friendName = val.data["name"];
+                           }
+                         });
                          return Column(
                            children: <Widget>[
                            Dismissible(
@@ -192,16 +205,18 @@ class _ChatScreenState extends State<ChatScreen> {
                                height: 20.0,
                                child: Center(child: Text("Remove friend: ${snapshot.data[i]}",style: TextStyle(fontWeight: FontWeight.bold),),),
                              ),
-                             onDismissed: (direction) async {
-                              var list = await friendfunc();
+                             onDismissed: (direction){
+                              
+                          setState(() async{
+                            var list = await friendfunc();
                               list.removeAt(i);
                               Map<String,dynamic> peopledata = <String,dynamic>{
                             "friends" : list,
                                 };
-                          setState(() {});
-                          await Firestore.instance.document("Users/$globalUsername").updateData(peopledata).whenComplete(()
+                             await Firestore.instance.document("Users/$globalUsername").updateData(peopledata).whenComplete(()
                           {}).catchError((e)=>print(e));
-                              
+                          });
+                         
                              },
                               child: Column(
                                 children: <Widget>[
@@ -241,7 +256,7 @@ class _ChatScreenState extends State<ChatScreen> {
                                          background: background,
                                          frienduid: snapshot.data[i],)));},
                                        title: Text(
-                                             snapshot.data[i],
+                                             friendName,
                                              style: TextStyle(
                                                color: greet,
                                                fontSize: 20.0,
@@ -300,29 +315,21 @@ class _ChatScreenState extends State<ChatScreen> {
     DateTime now = DateTime.now();
     hour = int.parse(DateFormat('kk').format(now));
     
-    if(hour >= 0 && hour < 12)
-    {
+    if(hour >= 0 && hour < 12){
       greeting = "Good Morning";
     }
-    else if(hour >= 12 && hour < 17)
-    {
+    else if(hour >= 12 && hour < 17){
       greeting = "Good Afternoon";
     }
-    else
-    {
+    else{
       greeting = "Good Evening";
     }
-
-    if(hour < 17)
-    {
+    if(hour < 17){
       gvalue = 1;
     }
-    else
-    {
+    else{
       gvalue = 0;
     }
-    //gvalue = 0;
-   
   }
 
   void darkTheme() async
@@ -345,17 +352,14 @@ class _ChatScreenState extends State<ChatScreen> {
 
   void menuList(String value)
   {
-    if(value=='a')
-    {
+    if(value=='a'){
       darkTheme();
     }
-    else if(value == 'b')
-    {
+    else if(value == 'b'){
       userAuth.logout(userData);
       Navigator.pushReplacement(context, MaterialPageRoute(builder: (context)=>HomeScreen()));
     }
-    else if(value=='c')
-    { 
+    else if(value=='c'){ 
       exit(0);
     }
   }
