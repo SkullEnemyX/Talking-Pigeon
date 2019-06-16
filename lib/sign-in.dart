@@ -132,7 +132,6 @@ class _SignupState extends State<Signup> with SingleTickerProviderStateMixin {
 
   Future<int> addUserToPeopleDB() async {
     var temp;
-    List<String> people = [];
     int ifExist = 1;
     //Checking condition whether the username exists already, firebase automatically checks whether the email is already used.
     DocumentReference peopleDocument =
@@ -148,18 +147,13 @@ class _SignupState extends State<Signup> with SingleTickerProviderStateMixin {
       } 
       else {
         //Code written below enters the users info into the People's database which consists of the list of user Talking Pigeon has.
-        temp = snapshot.data["People"];
-          print(temp);
-          for (int i = 0; i < temp.length; i++) {
-            people.add(temp[i].toString());
-          }
-        temp = null;
+        var people = snapshot.data["People"].toList();
         people.add("${userData.uid}"); //Add here what new content wants to be added.
         Map<String, dynamic> peopledata = <String, dynamic>{
           "People": people,
         };
         print(people);
-        peopleDocument.setData(peopledata).whenComplete((){
+        peopleDocument.updateData(peopledata).whenComplete((){
           print("User appended");
         });
       }

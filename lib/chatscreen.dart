@@ -188,13 +188,6 @@ class _ChatScreenState extends State<ChatScreen> {
                          return ListView.builder(
                          itemCount: snapshot.data?.length??0,
                          itemBuilder: (context,i){
-                         String friendName = "";
-                         Firestore.instance.document("Users/${snapshot.data[i]}").get().then((val)
-                         {  
-                           if(val.exists){
-                             friendName = val.data["name"];
-                           }
-                         });
                          return Column(
                            children: <Widget>[
                            Dismissible(
@@ -230,7 +223,9 @@ class _ChatScreenState extends State<ChatScreen> {
                                        lastMessage = document[0]["content"];
                                        print(document[0]["timestamp"]);
                                        return ListTile(
-                                      trailing: Text(document[0]["timestamp"]),
+                                      trailing: Text(document[0]["timestamp"],style: TextStyle(
+                                        color: greet
+                                      ),),
                                        leading: Container(
                                          decoration: BoxDecoration(
                                            border: Border.all(
@@ -256,7 +251,7 @@ class _ChatScreenState extends State<ChatScreen> {
                                          background: background,
                                          frienduid: snapshot.data[i],)));},
                                        title: Text(
-                                             friendName,
+                                             snapshot.data[i],
                                              style: TextStyle(
                                                color: greet,
                                                fontSize: 20.0,
@@ -366,11 +361,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: "Talking Pigeon",
-      
-      home: Scaffold(
+    return Scaffold(
         drawer: Drawer(),
         appBar: new AppBar(
           backgroundColor: background,
@@ -425,8 +416,7 @@ class _ChatScreenState extends State<ChatScreen> {
           ],
         ),
         body: _buildBody()
-                         )
-                       );
+         );
   }
 }
                   
