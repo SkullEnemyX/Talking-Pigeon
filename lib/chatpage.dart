@@ -70,124 +70,126 @@ class _ChatPageState extends State<ChatPage> {
   @override
   Widget build(BuildContext context) {
     
-    return Scaffold(
-      appBar: new AppBar(
-        elevation: 0.0,
-        backgroundColor: widget.background,
-        centerTitle: true,
-        title: new Text("${widget.frienduid}".toString().split(" ")[0],//Change Name to Friends name.
-        style: TextStyle(fontSize: 23.0,color: widget.greet),),
-        leading: new IconButton(
-          icon: Icon(Icons.arrow_back,color: Color(0xFF27E9E1),),
-          onPressed: () async{
-            Navigator.pop(context);
-          },
+    return MaterialApp(
+      home: Scaffold(
+        appBar: new AppBar(
+          elevation: 0.0,
+          backgroundColor: widget.background,
+          centerTitle: true,
+          title: new Text("${widget.frienduid}".toString().split(" ")[0],//Change Name to Friends name.
+          style: TextStyle(fontSize: 23.0,color: widget.greet),),
+          leading: new IconButton(
+            icon: Icon(Icons.arrow_back,color: Color(0xFF27E9E1),),
+            onPressed: () async{
+              Navigator.pop(context);
+            },
+          ),
         ),
-      ),
-      body: new Container(
-        color: widget.background,
-        width: double.infinity,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.start,
-          children: <Widget>[
-            Flexible(
-              child:StreamBuilder(
-                stream: snap,
-                builder: (context,snapshot)
-                {
-                  listMsg = [];
-                  if(!snapshot.hasData) return CircularProgressIndicator();
-                  else{
-                    List<DocumentSnapshot> document = snapshot.data.documents;
-                    print(document.length);
-                    for(int i=0;i<document.length;i++)
-                    {
-                      listMsg.add([document[i]["content"],
-                      document[i]["isMe"].compareTo(widget.name)==0?false:true,
-                      document[i]["timestamp"]]);
-                    }
-                    return ListView.builder(
-                      reverse: true,
-                      itemCount: snapshot.data.documents.length,
-                      controller: listScrollController,
-                      itemBuilder: (context,i)
+        body: new Container(
+          color: widget.background,
+          width: double.infinity,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.start,
+            children: <Widget>[
+              Flexible(
+                child:StreamBuilder(
+                  stream: snap,
+                  builder: (context,snapshot)
+                  {
+                    listMsg = [];
+                    if(!snapshot.hasData) return CircularProgressIndicator();
+                    else{
+                      List<DocumentSnapshot> document = snapshot.data.documents;
+                      print(document.length);
+                      for(int i=0;i<document.length;i++)
                       {
-                       try{
-                        return Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: <Widget>[
-                                  Presentmessage(message: listMsg[i][0],
-                                  notme: listMsg[i][1],
-                                  delivered: true,
-                                  time: listMsg[i][2],),
-                            ],
-                          );
-                       }
-                       catch(RangeError)
-                    {
-                     return Container(
-                       color: Colors.white,
-                     );
+                        listMsg.add([document[i]["content"],
+                        document[i]["isMe"].compareTo(widget.name)==0?false:true,
+                        document[i]["timestamp"]]);
+                      }
+                      return ListView.builder(
+                        reverse: true,
+                        itemCount: snapshot.data.documents.length,
+                        controller: listScrollController,
+                        itemBuilder: (context,i)
+                        {
+                         try{
+                          return Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: <Widget>[
+                                    Presentmessage(message: listMsg[i][0],
+                                    notme: listMsg[i][1],
+                                    delivered: true,
+                                    time: listMsg[i][2],),
+                              ],
+                            );
+                         }
+                         catch(RangeError)
+                      {
+                       return Container(
+                         color: Colors.white,
+                       );
+                      }
+                          }
+                      );
                     }
-                        }
-                    );
                   }
-                }
-              ),
-            ),
-            Padding(
-              padding: EdgeInsets.all(10.0),
-                          child: Container(
-                padding: EdgeInsets.symmetric(horizontal: 8.0),
-                decoration: BoxDecoration(
-                  color: widget.greet != Color(0xFF242424)?widget.greet:Colors.grey.shade300,
-                  borderRadius: new BorderRadius.circular(20.0),
-                  boxShadow: [
-                    BoxShadow(
-                    spreadRadius: 3.0,
-                    color: widget.greet != Color(0xFF242424)?Colors.white54:Colors.grey.shade400
-                  ),
-                  BoxShadow(
-                    spreadRadius: 3.0,
-                    color: Colors.grey.shade600
-                  ),
-                  BoxShadow(
-                    spreadRadius: 2.0,
-                    color: Colors.grey.shade300
-                  ),
-                  BoxShadow(
-                    spreadRadius: 1.0,
-                    color: Colors.grey.shade200
-                  ),
-                  ]
-                  
                 ),
-                child: new TextFormField(
-                                      textAlign: TextAlign.start,
-                                      decoration: new InputDecoration(
-                                        filled: true,
-                                        border: InputBorder.none,
-                                        fillColor: Colors.transparent,
-                                        hintText: "Type a message..."
-                                        ,suffixIcon: IconButton(
-                                          icon: Icon(Icons.send,size: 25.0,),
-                                          color: Colors.black,
-                                          disabledColor: Colors.grey,
-                                          onPressed: sendMessage,
-                                        )
-                                      ),
-                                      controller: textEditingController,
-                                      keyboardType: TextInputType.multiline,
-                                      textCapitalization: TextCapitalization.words,
-                                      style: TextStyle(color: widget.background == Color(0xFF242424)?widget.background:widget.greet,fontSize: 18.0,),
-                                      onSaved: (val)=> msg = val,
-                                    ),
               ),
-            ),
-          ],
+              Padding(
+                padding: EdgeInsets.all(10.0),
+                            child: Container(
+                  padding: EdgeInsets.symmetric(horizontal: 8.0),
+                  decoration: BoxDecoration(
+                    color: widget.greet != Color(0xFF242424)?widget.greet:Colors.grey.shade300,
+                    borderRadius: new BorderRadius.circular(20.0),
+                    boxShadow: [
+                      BoxShadow(
+                      spreadRadius: 3.0,
+                      color: widget.greet != Color(0xFF242424)?Colors.white54:Colors.grey.shade400
+                    ),
+                    BoxShadow(
+                      spreadRadius: 3.0,
+                      color: Colors.grey.shade600
+                    ),
+                    BoxShadow(
+                      spreadRadius: 2.0,
+                      color: Colors.grey.shade300
+                    ),
+                    BoxShadow(
+                      spreadRadius: 1.0,
+                      color: Colors.grey.shade200
+                    ),
+                    ]
+                    
+                  ),
+                  child: new TextFormField(
+                                        textAlign: TextAlign.start,
+                                        decoration: new InputDecoration(
+                                          filled: true,
+                                          border: InputBorder.none,
+                                          fillColor: Colors.transparent,
+                                          hintText: "Type a message..."
+                                          ,suffixIcon: IconButton(
+                                            icon: Icon(Icons.send,size: 25.0,),
+                                            color: Colors.black,
+                                            disabledColor: Colors.grey,
+                                            onPressed: sendMessage,
+                                          )
+                                        ),
+                                        controller: textEditingController,
+                                        keyboardType: TextInputType.multiline,
+                                        textCapitalization: TextCapitalization.words,
+                                        style: TextStyle(color: widget.background == Color(0xFF242424)?widget.background:widget.greet,fontSize: 18.0,),
+                                        onSaved: (val)=> msg = val,
+                                      ),
+                ),
+              ),
+            ],
+          ),
         ),
-      ),
 
+      ),
     );
   }
 

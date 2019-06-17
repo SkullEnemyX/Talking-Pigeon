@@ -1,22 +1,10 @@
 import 'dart:async';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:talking_pigeon_x/chatscreen.dart';
 import 'authentication.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-
-class HomeScreen extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return new MaterialApp(
-      title: "Talking Pigeon",
-      theme: new ThemeData(
-        primarySwatch: Colors.teal,
-      ),
-      home: new LoginScreen(),
-    );
-  }
-}
 
 class LoginScreen extends StatefulWidget {
   @override
@@ -43,44 +31,47 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
 
   @override
   Widget build(BuildContext context) {
-    return new Scaffold(
-        appBar: new AppBar(
-          bottomOpacity: 0.7,
-          centerTitle: true,
-          title: new Text(
-            "The Talking Pigeon",
-            style: TextStyle(
-              fontFamily: 'beauty',
-              fontSize: 25.0,
-              color: Colors.white.withOpacity(0.8),
+    return MaterialApp(
+          theme: ThemeData(
+            primarySwatch: Colors.teal
+          ),
+          home: new Scaffold(
+          appBar: new AppBar(
+            bottomOpacity: 0.7,
+            title: new Text(
+              "The Talking Pigeon",
+              style: TextStyle(
+                fontSize: 25.0,
+                color: Colors.white.withOpacity(0.8),
+              ),
+            ),
+            bottom: new TabBar(
+              controller: tabController,
+              tabs: <Widget>[
+                new Tab(
+                  text: "Sign-up",
+                ),
+                new Tab(
+                  text: "Sign-in",
+                )
+              ],
             ),
           ),
-          bottom: new TabBar(
-            controller: tabController,
-            tabs: <Widget>[
-              new Tab(
-                text: "Sign-up",
-              ),
-              new Tab(
-                text: "Sign-in",
-              )
-            ],
-          ),
-        ),
-        key: scaffoldKey,
-        backgroundColor: Colors.black,
-        body: new Stack(fit: StackFit.expand, children: <Widget>[
-          new Image(
-              image: new AssetImage("assets/cherry.jpg"),
-              fit: BoxFit.cover,
-              color: Colors.black87,
-              colorBlendMode: BlendMode.darken),
-          new TabBarView(
-            children: <Widget>[new Signup(), new Signin()],
-            controller: tabController,
-          ),
-          //new Signup()
-        ]));
+          key: scaffoldKey,
+          backgroundColor: Colors.black,
+          body: new Stack(fit: StackFit.expand, children: <Widget>[
+            new Image(
+                image: new AssetImage("assets/cherry.jpg"),
+                fit: BoxFit.cover,
+                color: Colors.black87,
+                colorBlendMode: BlendMode.darken),
+            new TabBarView(
+              children: <Widget>[new Signup(), new Signin()],
+              controller: tabController,
+            ),
+            //new Signup()
+          ])),
+    );
   }
 }
 
@@ -119,6 +110,12 @@ class _SignupState extends State<Signup> with SingleTickerProviderStateMixin {
   void dispose() {
     _loginButtonController.dispose();
     super.dispose();
+  }
+
+    Future<void> saveUserInfo(String username, String password) async{
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    prefs.setString('username', username);
+    prefs.setString('password', password);
   }
 
   void _submit() {
@@ -186,6 +183,7 @@ class _SignupState extends State<Signup> with SingleTickerProviderStateMixin {
         Scaffold.of(context).showSnackBar(snackbar1);
         }).catchError((e) => print(e));
         
+        saveUserInfo(userData.uid, userData.password);
         Timer(
             Duration(milliseconds: 400),
             () => Navigator.pushReplacement(
@@ -392,13 +390,19 @@ class _SigninState extends State<Signin> with SingleTickerProviderStateMixin {
     super.dispose();
   }
 
+   Future<void> saveUserInfo(String username, String password) async{
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    prefs.setString('username', username);
+    prefs.setString('password', password);
+  }
+
   void _submit() {
     final form = formKey.currentState;
     if (form.validate()) {
       form.save();
+      performlogin();
     }
-    performlogin();
-    setState(() {});
+    
   }
 
   void performlogin() async {
@@ -415,10 +419,9 @@ class _SigninState extends State<Signin> with SingleTickerProviderStateMixin {
       }
     });
     try {
-      setState(() {});
       _uid = await userAuth.verifyuser(userData);
-      //print(_uid);
       if (_uid != null) {
+        saveUserInfo(userData.uid, userData.password);
         Scaffold.of(context).showSnackBar(snackbar1);
         Timer(
             Duration(milliseconds: 400),

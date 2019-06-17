@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:talking_pigeon_x/authentication.dart';
 import 'package:talking_pigeon_x/chatpage.dart';
 import 'package:intl/intl.dart';
@@ -31,7 +32,7 @@ class _ChatScreenState extends State<ChatScreen> {
    int hour;
    Userauthentication userAuth = new Userauthentication();
    UserData userData = new UserData();
-   bool _loadingInProgress;
+   bool loadingInProgress;
    String lastMessage;
    String friendid;
 
@@ -53,7 +54,7 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
     Future<Null> getSharedPrefs() async {
-    _loadingInProgress = true;
+    loadingInProgress = true;
     final DocumentReference documentReference = Firestore.instance.document("Users/${widget.username}");
     globalUsername = "${widget.username}";
     await documentReference.get().then((snapshot){
@@ -63,7 +64,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
     }
     setState(() {
-      _loadingInProgress = false;
+      loadingInProgress = false;
     });
   });}
 
@@ -114,7 +115,7 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Widget _buildBody() {
-    if (_loadingInProgress==true) {
+    if (loadingInProgress==true) {
       return new Container(
         color: background,
         child: Center(child: Column(
@@ -345,14 +346,17 @@ class _ChatScreenState extends State<ChatScreen> {
                 }); 
   }
 
-  void menuList(String value)
+  void menuList(String value) async
   {
     if(value=='a'){
       darkTheme();
     }
     else if(value == 'b'){
       userAuth.logout(userData);
-      Navigator.pushReplacement(context, MaterialPageRoute(builder: (context)=>HomeScreen()));
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      prefs.setString('username', '');
+      prefs.setString('password', '');
+      Navigator.pushReplacement(context, MaterialPageRoute(builder: (context)=>LoginScreen()));
     }
     else if(value=='c'){ 
       exit(0);

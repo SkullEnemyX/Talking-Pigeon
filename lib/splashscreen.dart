@@ -1,55 +1,77 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'sign-in.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
+import 'package:talking_pigeon_x/authentication.dart';
+import 'package:talking_pigeon_x/chatscreen.dart';
+import 'package:talking_pigeon_x/sign-in.dart';
 
-class SplashScreen extends StatelessWidget {
+class SplashScreen extends StatefulWidget {
   @override
-  Widget build(BuildContext context) {
-    return new MaterialApp(
-      title: "The Talking Pigeon",
-      debugShowCheckedModeBanner: false,
-      home: new SplashWallpaper(),
-      routes: <String, WidgetBuilder>{
-        "/sign": (BuildContext context) => new HomeScreen(),
-        "/splash": (BuildContext context) => new SplashScreen()
-      },
-    );
-  }
+  _SplashScreenState createState() => _SplashScreenState();
 }
 
-class SplashX extends StatefulWidget {
-  @override
-  _SplashXState createState() => _SplashXState();
-}
+class _SplashScreenState extends State<SplashScreen> {
+  bool credentialCorrectness = false;
+  String _username;
+  UserData userData = UserData();
 
-class _SplashXState extends State<SplashX> {
-  Future checkSeen() async {
+  Future infoAvailable() async {
+    
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    bool _seen = (prefs.getBool('seen') ?? false);
-
-    if (_seen) {
-      Navigator.of(context).pushReplacementNamed("/splash");
+    Userauthentication userAuth = Userauthentication();
+    String _uid;
+    _username = (prefs.getString('username') ??'');
+    String _password = (prefs.getString('password')??'');
+    if (_username!='' && _password!='') {
+      await Firestore.instance.document("Users/$_username").get().then((snapshot) {
+      if (snapshot.exists) {
+        userData.email = snapshot.data['email'];
+        userData.password = _password;
+        userData.uid = _username;
+      }
+    });
+      try {
+      _uid = await userAuth.verifyuser(userData);
+      if (_uid != null) {
+        setState(() {
+          credentialCorrectness = true;
+        });
+      }
+    } catch (e) {
+      throw e;
+    }
     } else {
-      prefs.setBool('seen', true);
-      Navigator.of(context).pushNamed("/sign");
+      setState(() {
+        credentialCorrectness = false;
+      });
     }
   }
 
   @override
   void initState() {
     super.initState();
-    checkSeen();
+    infoAvailable();
   }
 
   @override
   Widget build(BuildContext context) {
-    return new Scaffold();
+    return new MaterialApp(
+      title: "The Talking Pigeon",
+      debugShowCheckedModeBanner: false,
+      home: SplashWallpaper(
+        credentialsCorrect: credentialCorrectness,
+        username: credentialCorrectness?userData.uid:'',
+      ),
+    );
   }
 }
 
 class SplashWallpaper extends StatefulWidget {
+  final bool credentialsCorrect;
+  final String username;
+  SplashWallpaper({this.credentialsCorrect = false,@required this.username});
   @override
   _SplashWallpaperState createState() => _SplashWallpaperState();
 }
@@ -63,13 +85,17 @@ class _SplashWallpaperState extends State<SplashWallpaper>
   void initState() {
     super.initState();
     _iconAnimationController = new AnimationController(
-        vsync: this, duration: new Duration(milliseconds: 4000));
+        vsync: this, duration: new Duration(milliseconds: 3000));
     _iconAnimation = new CurvedAnimation(
         parent: _iconAnimationController, curve: Curves.bounceOut);
     _iconAnimation.addListener(() => this.setState(() {}));
     _iconAnimationController.forward();
     Timer(Duration(seconds: 3),
-        () => Navigator.of(context).pushReplacementNamed("/sign"));
+        () => Navigator.of(context).pushReplacement(MaterialPageRoute(
+          builder: (context)=>widget.credentialsCorrect?ChatScreen(
+            username: widget.username,
+          ):LoginScreen()
+        )));
   }
 
   @override
