@@ -4,8 +4,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:talking_pigeon_x/authentication.dart';
 import 'package:talking_pigeon_x/chatpage.dart';
 import 'package:intl/intl.dart';
+import 'package:talking_pigeon_x/groupchat.dart';
 import 'package:talking_pigeon_x/sign-in.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
+import 'package:unicorndial/unicorndial.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 var globalUsername;
@@ -29,12 +31,14 @@ class _ChatScreenState extends State<ChatScreen> {
    String name;
    String theme = "Dark Theme"; 
    int gvalue=0 ;
+   TextEditingController textEditingController = TextEditingController();
    int hour;
    Userauthentication userAuth = new Userauthentication();
    UserData userData = new UserData();
    bool loadingInProgress;
    String lastMessage;
    String friendid;
+   var childButtons = List<UnicornButton>();
 
 
   @override
@@ -42,6 +46,7 @@ class _ChatScreenState extends State<ChatScreen> {
       super.initState();
       getSharedPrefs();
       _initx();
+      insertUnicornButtons();
     }
 
     
@@ -82,14 +87,12 @@ class _ChatScreenState extends State<ChatScreen> {
       flist.add(friendlist[i].toString());
     }
     friendlist = null;
-    print(flist);
 
     return flist.reversed.toList();
   }
 
   Future<String> fetchName() async{
     String friendName;
-    
     return friendName;
   }
 
@@ -102,6 +105,33 @@ class _ChatScreenState extends State<ChatScreen> {
     {
       return(friendid.hashCode.toString()+myid.hashCode.toString());
     }
+  }
+
+  String readTimestamp(int timestamp) {
+    var now = new DateTime.now();
+    var format = new DateFormat('HH:mm a');
+    var date = new DateTime.fromMillisecondsSinceEpoch(timestamp * 1000);
+    var diff = now.difference(date);
+    var time = '';
+
+    if (diff.inSeconds <= 0 || diff.inSeconds > 0 && diff.inMinutes == 0 || diff.inMinutes > 0 && diff.inHours == 0 || diff.inHours > 0 && diff.inDays == 0) {
+      time = format.format(date);
+    } else if (diff.inDays > 0 && diff.inDays < 7) {
+      if (diff.inDays == 1) {
+        time = diff.inDays.toString() + ' DAY AGO';
+      } else {
+        time = diff.inDays.toString() + ' DAYS AGO';
+      }
+    } else {
+      if (diff.inDays == 7) {
+        time = (diff.inDays / 7).floor().toString() + ' WEEK AGO';
+      } else {
+
+        time = (diff.inDays / 7).floor().toString() + ' WEEKS AGO';
+      }
+    }
+
+    return time;
   }
 
   Stream<QuerySnapshot> fetchMessages(String friendID) {
@@ -153,8 +183,8 @@ class _ChatScreenState extends State<ChatScreen> {
                      crossAxisAlignment: CrossAxisAlignment.start,
                      children: <Widget>[
                        new Text(
-                        "$greeting, "+ "$name".toString().split(" ")[0]
-                        ,style: TextStyle(
+                        "$greeting, "+ "$name".toString().split(" ")[0],
+                        style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 27.0,
                           color: greet,
@@ -222,7 +252,6 @@ class _ChatScreenState extends State<ChatScreen> {
                                        {
                                       var document = snap.data.documents;
                                        lastMessage = document[0]["content"];
-                                       print(document[0]["timestamp"]);
                                        return ListTile(
                                       trailing: Text(document[0]["timestamp"],style: TextStyle(
                                         color: greet
@@ -363,10 +392,140 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
+  insertUnicornButtons(){
+    
+
+    childButtons.add(UnicornButton(
+        hasLabel: true,
+        labelText: "Create a team",
+        currentButton: FloatingActionButton(
+          heroTag: "train",
+          backgroundColor: Colors.redAccent,
+          mini: true,
+          child: Icon(Icons.group),
+          onPressed: () {
+            showDialog(
+              context: context,
+              builder: (BuildContext context){
+                return AlertDialog(
+                  title: Text("What is your team called?"),
+                  content: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: <Widget>[
+                      TextField(
+                        controller: textEditingController,
+                        autofocus: true,
+                      ),
+                    SizedBox(
+                      height: 15.0,
+                    ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: <Widget>[
+                        Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            onTap: (){
+                              Navigator.of(context).pop();
+                              textEditingController.clear();
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 12.0),
+                               decoration: BoxDecoration(
+                                  color: Colors.grey.shade300,
+                                  borderRadius: BorderRadius.circular(12.0)
+                                ),
+                              child: Text("Cancel",
+                              style: TextStyle(
+                                color: greet,
+                                fontSize: 15.0,
+                              ),),
+                            ),
+                          ),
+                        ),
+                        Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            onTap: (){
+                              Navigator.of(context).pop();
+                              print(textEditingController.value.text);
+                              Navigator.of(context).push(MaterialPageRoute(builder: (context)=>GroupChat(
+                                groupName: textEditingController.value.text,
+                                admin: globalUsername,
+                                greet: greet,
+                                background: background,
+                                username: globalUsername,
+                              ))).whenComplete((){
+                                textEditingController.clear();
+                              });
+                            },
+                            child:Container(
+                                padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 12.0),
+                                decoration: BoxDecoration(
+                                  color: Color(0xFF27E9E1),
+                                  borderRadius: BorderRadius.circular(12.0)
+                                ),
+                                child: Text("Create",
+                                style: TextStyle(
+                                  color: greet,
+                                  fontSize: 15.0,
+                                ),),
+                            ),
+                          ),
+                        )
+                      ],
+                    )
+                    ],
+                  ),
+                );
+              }
+            );
+          },
+        )));
+
+    childButtons.add(UnicornButton(
+        labelText: "Chat with a person",
+        hasLabel: true,
+        currentButton: FloatingActionButton(
+            heroTag: "plane",
+            backgroundColor: Colors.blue,
+            mini: true,
+            onPressed: (){
+              showSearch(
+                  context: context,delegate: UserSearch());
+            },
+            child: Icon(Icons.person))));
+    
+    childButtons.add(UnicornButton(
+        labelText: "Flip theme",
+        hasLabel: true,
+        currentButton: FloatingActionButton(
+            heroTag: "planex",
+            backgroundColor: Colors.greenAccent,
+            mini: true,
+            onPressed: (){
+              darkTheme();
+            },
+            child: Icon(Icons.flip_to_front))));
+
+  }
+
+  @override
+  void dispose() {
+    textEditingController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        drawer: Drawer(),
+        floatingActionButton: UnicornDialer(
+          childButtons: childButtons,
+          backgroundColor: Colors.transparent,
+          parentButtonBackground: Color(0xFF27E9E1),
+          parentButton: Icon(Icons.add),
+          orientation: UnicornOrientation.VERTICAL,
+        ),
         appBar: new AppBar(
           backgroundColor: background,
           centerTitle: true,
@@ -436,8 +595,8 @@ class UserSearch extends SearchDelegate<String>{
   List<String> presentList = ["null"];
   List<String> friendSuggestion = [];
   
-  Future<List<String>> addfriends() async{
-  final DocumentReference documentReference = Firestore.instance.document("Users/$globalUsername");
+  Future<List<String>> addfriends(String username) async{
+  final DocumentReference documentReference = Firestore.instance.document("Users/$username");
   
    await documentReference.get().then((snapshot){
       if(snapshot.exists)
@@ -491,7 +650,7 @@ Future<List<String>> checkpart2(String s) async{
     userList.remove(globalUsername);
     });
     //print(userList.where((p)=>p.startsWith(s)).toList()); Used in case we want to return query beginning
-    return userList.where((p)=>p.compareTo(s)==0).toList(); //If exact match needed on query.
+    return userList.where((p)=>p.startsWith(s)).toList(); //If exact match needed on query.
   }
 
   @override
@@ -578,7 +737,8 @@ Future<List<String>> checkpart2(String s) async{
                            greet: greet,
                            background: background,
                            frienduid: snapshot.data[index],)));
-                   var list = await addfriends();
+                  //Adding people to each other's friendlist if one selects the name of the user.
+                   var list = await addfriends(globalUsername);
                    if(!list.contains(snapshot.data[index]))
                    {
                      list.add(snapshot.data[index].toString());
@@ -589,7 +749,17 @@ Future<List<String>> checkpart2(String s) async{
                       await ref.updateData(peopledata).whenComplete(()
                       {}).catchError((e)=>print(e));
                    }
-
+                  list = await addfriends(snapshot.data[index]);
+                   if(!list.contains(globalUsername))
+                   {
+                     list.add(globalUsername);
+                     DocumentReference ref = Firestore.instance.document("Users/${snapshot.data[index]}");
+                     Map<String,dynamic> peopledata = <String,dynamic>{
+                      "friends" : list,
+                            };
+                      await ref.updateData(peopledata).whenComplete(()
+                      {}).catchError((e)=>print(e));
+                   }
                   },
               child: Container(
                 child: 

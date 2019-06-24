@@ -16,6 +16,7 @@ dependencies:
   intl:
   firebase_auth:
   cloud_firestore:
+  unicorndial:
   
 
 dev_dependencies:

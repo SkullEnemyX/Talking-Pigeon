@@ -143,25 +143,6 @@ class _ChatPageState extends State<ChatPage> {
                   decoration: BoxDecoration(
                     color: widget.greet != Color(0xFF242424)?widget.greet:Colors.grey.shade300,
                     borderRadius: new BorderRadius.circular(20.0),
-                    boxShadow: [
-                      BoxShadow(
-                      spreadRadius: 3.0,
-                      color: widget.greet != Color(0xFF242424)?Colors.white54:Colors.grey.shade400
-                    ),
-                    BoxShadow(
-                      spreadRadius: 3.0,
-                      color: Colors.grey.shade600
-                    ),
-                    BoxShadow(
-                      spreadRadius: 2.0,
-                      color: Colors.grey.shade300
-                    ),
-                    BoxShadow(
-                      spreadRadius: 1.0,
-                      color: Colors.grey.shade200
-                    ),
-                    ]
-                    
                   ),
                   child: new TextFormField(
                                         textAlign: TextAlign.start,
@@ -169,8 +150,8 @@ class _ChatPageState extends State<ChatPage> {
                                           filled: true,
                                           border: InputBorder.none,
                                           fillColor: Colors.transparent,
-                                          hintText: "Type a message..."
-                                          ,suffixIcon: IconButton(
+                                          hintText: "Type a message...",
+                                          suffixIcon: IconButton(
                                             icon: Icon(Icons.send,size: 25.0,),
                                             color: Colors.black,
                                             disabledColor: Colors.grey,
@@ -179,7 +160,7 @@ class _ChatPageState extends State<ChatPage> {
                                         ),
                                         controller: textEditingController,
                                         keyboardType: TextInputType.multiline,
-                                        textCapitalization: TextCapitalization.words,
+                                        textCapitalization: TextCapitalization.sentences,
                                         style: TextStyle(color: widget.background == Color(0xFF242424)?widget.background:widget.greet,fontSize: 18.0,),
                                         onSaved: (val)=> msg = val,
                                       ),
@@ -198,6 +179,7 @@ class _ChatPageState extends State<ChatPage> {
   {
   setState(() {
    messageList(textEditingController.value.text,false,time());
+   listScrollController.animateTo(0.0, duration: Duration(milliseconds: 300), curve: Curves.elasticIn);
   //Refreshing widget when new message is sent or appears. 
   });
   var documentReference = Firestore.instance
@@ -221,9 +203,6 @@ class _ChatPageState extends State<ChatPage> {
   });
 
   }
-  setState(() {
-   listScrollController.animateTo(0.0, duration: Duration(milliseconds: 300), curve: Curves.easeOut); 
-  });
   }
 }
 
@@ -275,10 +254,13 @@ class Bubble extends StatelessWidget{
       crossAxisAlignment: align,
       children: <Widget>[
         Container(
-                      width: message.split(" ").length <= 9?null:width,
                       margin: const EdgeInsets.all(10.0),
                       padding: const EdgeInsets.all(8.0),
                       //color: Colors.red,
+                      constraints: BoxConstraints(
+                        maxWidth: width,
+                        minWidth: 110.0
+                      ),
                       decoration: BoxDecoration(
                       boxShadow: [
                       BoxShadow(

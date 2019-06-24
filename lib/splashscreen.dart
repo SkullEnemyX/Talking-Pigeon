@@ -52,7 +52,7 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    infoAvailable();
+    infoAvailable().then((e)=>print(e));
   }
 
   @override
@@ -76,8 +76,7 @@ class SplashWallpaper extends StatefulWidget {
   _SplashWallpaperState createState() => _SplashWallpaperState();
 }
 
-class _SplashWallpaperState extends State<SplashWallpaper>
-    with SingleTickerProviderStateMixin {
+class _SplashWallpaperState extends State<SplashWallpaper> with SingleTickerProviderStateMixin {
   AnimationController _iconAnimationController;
   Animation<double> _iconAnimation;
 
@@ -85,12 +84,12 @@ class _SplashWallpaperState extends State<SplashWallpaper>
   void initState() {
     super.initState();
     _iconAnimationController = new AnimationController(
-        vsync: this, duration: new Duration(milliseconds: 3000));
+        vsync: this, duration: new Duration(milliseconds: 4000));
     _iconAnimation = new CurvedAnimation(
         parent: _iconAnimationController, curve: Curves.bounceOut);
     _iconAnimation.addListener(() => this.setState(() {}));
     _iconAnimationController.forward();
-    Timer(Duration(seconds: 3),
+    Timer(Duration(seconds: 5),
         () => Navigator.of(context).pushReplacement(MaterialPageRoute(
           builder: (context)=>widget.credentialsCorrect?ChatScreen(
             username: widget.username,
