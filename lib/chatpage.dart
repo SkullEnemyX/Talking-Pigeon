@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:intl/intl.dart';
 
 class ChatPage extends StatefulWidget {
   final Color greet;
@@ -120,7 +121,7 @@ class _ChatPageState extends State<ChatPage> {
                                     Presentmessage(message: listMsg[i][0],
                                     notme: listMsg[i][1],
                                     delivered: true,
-                                    time: listMsg[i][2],),
+                                    time: readTimestamp(int.parse(listMsg[i][2])),),
                               ],
                             );
                          }
@@ -169,16 +170,44 @@ class _ChatPageState extends State<ChatPage> {
             ],
           ),
         ),
-
       ),
     );
   }
 
+  String readTimestamp(int timestamp) {
+    var now = new DateTime.now();
+    var format = new DateFormat('HH:mm a');
+    var date = new DateTime.fromMicrosecondsSinceEpoch(timestamp * 1000);
+    var diff = now.difference(date);
+    var time = '';
+
+    if (diff.inSeconds <= 0 || diff.inSeconds > 0 && diff.inMinutes == 0 || diff.inMinutes > 0 && diff.inHours == 0 || diff.inHours > 0 && diff.inDays == 0) {
+      time = format.format(date);
+    } else if (diff.inDays > 0 && diff.inDays < 7) {
+      if (diff.inDays == 1) {
+        time = diff.inDays.toString() + ' DAY AGO';
+      } else {
+        time = diff.inDays.toString() + ' DAYS AGO';
+      }
+    } else {
+      if (diff.inDays == 7) {
+        time = (diff.inDays / 7).floor().toString() + ' WEEK AGO';
+      } else {
+
+        time = (diff.inDays / 7).floor().toString() + ' WEEKS AGO';
+      }
+    }
+
+    return time;
+  }
+
+
   void sendMessage() {
+  int timeStamp = DateTime.now().millisecondsSinceEpoch;
   if(textEditingController.value.text!="")
   {
   setState(() {
-   messageList(textEditingController.value.text,false,time());
+   messageList(textEditingController.value.text,false,readTimestamp(timeStamp));
    listScrollController.animateTo(0.0, duration: Duration(milliseconds: 300), curve: Curves.elasticIn);
   //Refreshing widget when new message is sent or appears. 
   });
@@ -186,18 +215,19 @@ class _ChatPageState extends State<ChatPage> {
   .collection('messages')
   .document(returnGroupId(widget.name, widget.frienduid))
   .collection(returnGroupId(widget.name, widget.frienduid))
-  .document(DateTime.now().millisecondsSinceEpoch.toString());
+  .document(timeStamp.toString());
 
   Firestore.instance.runTransaction((transaction) async {
   await transaction.set(
   documentReference,
   {
-  'timestamp': time(),
+  'timestamp': timeStamp.toString(),
   'content': textEditingController.value.text,
   'isMe' : widget.name
   },
   );
-  }).whenComplete((){textEditingController.clear();
+  }).whenComplete((){
+  textEditingController.clear();
   setState(() {
   });
   });

@@ -13,9 +13,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 var globalUsername;
 Color greet ;
 Color background ;
-var friendlist ;
-List<String> flist = [];
-List<String> fname = [];
 
 class ChatScreen extends StatefulWidget {
   final String username;
@@ -49,8 +46,6 @@ class _ChatScreenState extends State<ChatScreen> {
       insertUnicornButtons();
     }
 
-    
-  
   _initx() {
     fetchTime();
     darkTheme();
@@ -73,7 +68,9 @@ class _ChatScreenState extends State<ChatScreen> {
     });
   });}
 
-    Future<List<String>> friendfunc() async{
+    Future<List<dynamic>> friendfunc() async{
+    var flist = [];
+    var friendlist;
     DocumentReference reference = Firestore.instance.document("Users/${widget.username}");
     await reference.get().then((snapshot)
     {
@@ -84,16 +81,38 @@ class _ChatScreenState extends State<ChatScreen> {
       flist.clear();
     for(int i=0;i<friendlist.length;i++)
     {
-      flist.add(friendlist[i].toString());
+      flist.add([friendlist[i].toString(),0]);
     }
     friendlist = null;
-
     return flist.reversed.toList();
   }
 
-  Future<String> fetchName() async{
-    String friendName;
-    return friendName;
+  Future<List<dynamic>> groupList() async{
+    var gList;
+    var grpList=[];
+    DocumentReference reference = Firestore.instance.document("Users/${widget.username}");
+    await reference.get().then((snapshot)
+    {
+      if(snapshot.exists)
+      gList = snapshot.data["groups"];
+    });
+    for(int i=0;i<gList.length;i++)
+    {
+      gList[i].forEach((m,f)=>grpList.add([m,1,f]));
+    }
+    gList = null;
+    return grpList.reversed.toList();
+  }
+
+  Future<List<dynamic>> totalList() async{
+    List<dynamic> finalList = [];
+    finalList.addAll(await friendfunc());
+    List<dynamic> temp = [];
+    temp.addAll(await groupList());
+    if(temp!=null || temp !=[]){
+      finalList.addAll(temp);
+    }
+    return finalList;
   }
 
   returnGroupId(String myid,String friendid){
@@ -110,7 +129,7 @@ class _ChatScreenState extends State<ChatScreen> {
   String readTimestamp(int timestamp) {
     var now = new DateTime.now();
     var format = new DateFormat('HH:mm a');
-    var date = new DateTime.fromMillisecondsSinceEpoch(timestamp * 1000);
+    var date = new DateTime.fromMicrosecondsSinceEpoch(timestamp * 1000);
     var diff = now.difference(date);
     var time = '';
 
@@ -134,15 +153,39 @@ class _ChatScreenState extends State<ChatScreen> {
     return time;
   }
 
-  Stream<QuerySnapshot> fetchMessages(String friendID) {
+  Stream<QuerySnapshot> fetchMessages(List<dynamic> finalList) {
+    String insertVal = finalList[0];
+    if(finalList[1]==0){
     Stream<QuerySnapshot> snap = Firestore.instance.collection('messages')
-                                          .document(returnGroupId(globalUsername, friendID))
-                                          .collection(returnGroupId(globalUsername,friendID))
+                                          .document(returnGroupId(globalUsername, insertVal))
+                                          .collection(returnGroupId(globalUsername,insertVal))
                                           .orderBy('timestamp', descending: true)
                                           .limit(1)
                                           .snapshots();
     return snap;
+    }
+    else{
+      Stream<QuerySnapshot> snap = Firestore.instance.collection('messages')
+                                          .document(insertVal)
+                                          .collection(insertVal)
+                                          .orderBy('timestamp', descending: true)
+                                          .limit(1)
+                                          .snapshots();
+    return snap;
+    }
+    
   }
+
+  // Stream<QuerySnapshot> fetchGMessages(String groupId) {
+  //   Stream<QuerySnapshot> snap = Firestore.instance.collection('messages')
+  //                                         .document(groupId)
+  //                                         .collection(groupId)
+  //                                         .orderBy('timestamp', descending: true)
+  //                                         .limit(1)
+  //                                         .snapshots();
+  //   return snap;
+  // }
+
 
   Widget _buildBody() {
     if (loadingInProgress==true) {
@@ -193,7 +236,7 @@ class _ChatScreenState extends State<ChatScreen> {
                           padding: EdgeInsets.only(top: 5.0,left: 30.0),
                         ),
                         new Text(
-                          "Let's resume conversing...",
+                          "Personal Conversations",
                           style: TextStyle(
                             color: Color(0xFF808080)
                           )
@@ -204,14 +247,14 @@ class _ChatScreenState extends State<ChatScreen> {
                ),
                new Expanded(
               child: new Column(
-                mainAxisAlignment: MainAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.start, 
                 children: <Widget>[
                   Padding(
                     padding: EdgeInsets.only(bottom: 20.0),
                   ),
                        Expanded(
                     child: FutureBuilder(
-                          future: friendfunc(),
+                          future: totalList(),
                           builder: (BuildContext context,AsyncSnapshot snapshot)
                           {
                         if(snapshot.connectionState == ConnectionState.done)
@@ -222,30 +265,41 @@ class _ChatScreenState extends State<ChatScreen> {
                          return Column(
                            children: <Widget>[
                            Dismissible(
-                             key: new Key(snapshot.data[i]),
+                             key: new Key(snapshot.data[i][0]),
                              direction: DismissDirection.endToStart,
                              background: Container(
                                color: Colors.red,
                                height: 20.0,
-                               child: Center(child: Text("Remove friend: ${snapshot.data[i]}",style: TextStyle(fontWeight: FontWeight.bold),),),
+                               child: Center(child: Text("Remove: ${snapshot.data[i][0]}",style: TextStyle(fontWeight: FontWeight.bold),),),
                              ),
                              onDismissed: (direction){
                               
                           setState(() async{
-                            var list = await friendfunc();
+                            if(snapshot.data[i][1]==0){
+                              var list = await friendfunc();
                               list.removeAt(i);
                               Map<String,dynamic> peopledata = <String,dynamic>{
                             "friends" : list,
                                 };
                              await Firestore.instance.document("Users/$globalUsername").updateData(peopledata).whenComplete(()
                           {}).catchError((e)=>print(e));
-                          });
+                          }else{
+                            var list = await groupList();
+                            list.removeAt(i);
+                             Map<String,dynamic> peopledata = <String,dynamic>{
+                            "groups" : list,
+                                };
+                             await Firestore.instance.document("Users/$globalUsername").updateData(peopledata).whenComplete(()
+                          {}).catchError((e)=>print(e));
+                          }
+                            }
+                            );
                          
                              },
                               child: Column(
                                 children: <Widget>[
                                    StreamBuilder(
-                                     stream: fetchMessages(snapshot.data[i]),
+                                     stream:fetchMessages(snapshot.data[i]),
                                      builder: (context, snap) {
                                        if(!snap.hasData) return Container();
                                        else
@@ -253,7 +307,7 @@ class _ChatScreenState extends State<ChatScreen> {
                                       var document = snap.data.documents;
                                        lastMessage = document[0]["content"];
                                        return ListTile(
-                                      trailing: Text(document[0]["timestamp"],style: TextStyle(
+                                      trailing: Text(readTimestamp(int.parse(document[0]["timestamp"])),style: TextStyle(
                                         color: greet
                                       ),),
                                        leading: Container(
@@ -269,19 +323,30 @@ class _ChatScreenState extends State<ChatScreen> {
                                              radius: 25.0,
                                              backgroundColor: background,
                                              foregroundColor: Color(0xFF27E9E1),
-                                             child: Text(snapshot.data[i][0].toUpperCase(),style: TextStyle(fontWeight: FontWeight.bold,fontSize: 20.0),),
+                                             child: Text(snapshot.data[i][0][0].toUpperCase(),style: TextStyle(fontWeight: FontWeight.bold,fontSize: 20.0),),
                                            ),
 
                                        ),
                                        onTap:(){
-                                         //Add change if new list to be made of recent contact. 
-                                         Navigator.push(context, MaterialPageRoute(builder: (context)=>ChatPage(
+                                         if(snapshot.data[i][1]==0){
+                                           Navigator.push(context, MaterialPageRoute(builder: (context)=>ChatPage(
                                          name: globalUsername,
                                          greet: greet,
                                          background: background,
-                                         frienduid: snapshot.data[i],)));},
+                                         frienduid: snapshot.data[i][0],)));
+                                         }
+                                         else{
+                                           Navigator.push(context, MaterialPageRoute(builder: (context)=>GroupChat(
+                                         username: globalUsername,
+                                         greet: greet,
+                                         background: background,
+                                         groupId: snapshot.data[i][0],
+                                         groupName: snapshot.data[i][2],
+                                            )));
+                                         }
+                                         },
                                        title: Text(
-                                             snapshot.data[i],
+                                             snapshot.data[i][1]==0?snapshot.data[i][0]:snapshot.data[i][2],
                                              style: TextStyle(
                                                color: greet,
                                                fontSize: 20.0,
@@ -448,11 +513,12 @@ class _ChatScreenState extends State<ChatScreen> {
                           child: InkWell(
                             onTap: (){
                               Navigator.of(context).pop();
-                              print(textEditingController.value.text);
+                              String groupId = DateTime.now().millisecondsSinceEpoch.toString();
                               Navigator.of(context).push(MaterialPageRoute(builder: (context)=>GroupChat(
                                 groupName: textEditingController.value.text,
                                 admin: globalUsername,
                                 greet: greet,
+                                groupId: groupId,
                                 background: background,
                                 username: globalUsername,
                               ))).whenComplete((){
@@ -688,11 +754,13 @@ Future<List<String>> checkpart2(String s) async{
       itemBuilder: (context,index) => 
       InkWell(
         splashColor: Color(0xFF27E9E1),
-        onTap: ()=> Navigator.push(context, MaterialPageRoute(builder: (context)=>ChatPage(
+        onTap: (){Navigator.push(context, MaterialPageRoute(builder: (context)=>ChatPage(
                            name: globalUsername,
                            greet: greet,
                            background: background,
-                           frienduid: snapshot.data[index],))),
+                           frienduid: snapshot.data[index],)));
+                           
+              },
               child: Container(
                 child: 
                   Column(
@@ -730,6 +798,12 @@ Future<List<String>> checkpart2(String s) async{
        if(snapshot.connectionState==ConnectionState.done)
        return ListView.builder(
       itemBuilder: (context,index) => 
+      snapshot.data.length<1?
+      Container(
+        child: Center(
+          child: Text("No user found"),
+        ),
+      ):
       InkWell(
         splashColor: Color(0xFF27E9E1),
         onTap: () async { Navigator.push(context, MaterialPageRoute(builder: (context)=>ChatPage(
@@ -747,7 +821,9 @@ Future<List<String>> checkpart2(String s) async{
                       "friends" : list,
                             };
                       await ref.updateData(peopledata).whenComplete(()
-                      {}).catchError((e)=>print(e));
+                      {
+                        list = [];
+                      }).catchError((e)=>print(e));
                    }
                   list = await addfriends(snapshot.data[index]);
                    if(!list.contains(globalUsername))
@@ -781,7 +857,7 @@ Future<List<String>> checkpart2(String s) async{
         ),
               ),
       ),
-      itemCount: snapshot.data?.length??0,
+      itemCount: snapshot.data.length,
     );
     else
     {

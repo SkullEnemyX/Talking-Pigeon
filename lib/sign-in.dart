@@ -173,7 +173,8 @@ class _SignupState extends State<Signup> with SingleTickerProviderStateMixin {
           "name": "${userData.displayName}",
           "username": "${userData.uid}",
           "email": "${userData.email}",
-          "friends": []
+          "friends": [],
+          "groups" : []
         };
         documentReference.setData(userinfo).whenComplete(() {
          final snackbar1 = new SnackBar(

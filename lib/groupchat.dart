@@ -8,8 +8,9 @@ class GroupChat extends StatefulWidget {
   final String groupName;
   final String admin;
   final String username;
+  final String groupId;
   final Color greet,background;
-  GroupChat({@required this.groupName,this.admin,@required this.background,@required this.greet,@required this.username});
+  GroupChat({@required this.groupName,this.admin,@required this.background,@required this.greet,@required this.username,@required this.groupId});
   @override
   _GroupChatState createState() => _GroupChatState();
 }
@@ -26,8 +27,6 @@ class _GroupChatState extends State<GroupChat> {
   final ScrollController listScrollController = new ScrollController();
 
   Stream<QuerySnapshot> createGroup(){
-    if(groupId == null)
-    groupId = DateTime.now().microsecondsSinceEpoch.toString();
     var snapshot = Firestore.instance
                                     .collection('messages')
                                     .document(groupId)
@@ -47,17 +46,6 @@ class _GroupChatState extends State<GroupChat> {
     return listMsg;
   }
 
-  Future<String> fetchCurrentGroupId() async{
-    DocumentReference documentReference = Firestore.instance.document("Groups/$groupId");
-    documentReference.get().then((onValue){
-      if(onValue.exists){
-        groupId = onValue.data["groupid"];
-      }
-    });
-    String s;
-    return s;
-  }
-
   runTransactionToAddMembers(String uname,String groupId){
     List<String> groups;
     DocumentReference docRef = Firestore.instance.document("Users/$uname");
@@ -72,7 +60,7 @@ class _GroupChatState extends State<GroupChat> {
   }
 
   void sendMessage() async{
-    String groupId = await fetchCurrentGroupId();
+    int timeStamp = DateTime.now().millisecondsSinceEpoch;
     if(textEditingController.value.text!="")
       {
   setState(() {
@@ -84,14 +72,14 @@ class _GroupChatState extends State<GroupChat> {
   .collection('messages')
   .document(groupId)
   .collection(groupId)
-  .document(DateTime.now().millisecondsSinceEpoch.toString());
+  .document(timeStamp.toString());
 
   Firestore.instance.runTransaction((transaction) async {
   await transaction.set(
   documentReference,
   {
   'sender': widget.username,
-  'timestamp': time(),
+  'timestamp': timeStamp.toString(),
   'content': textEditingController.value.text,
                 },);
           }).whenComplete((){textEditingController.clear();
@@ -103,10 +91,32 @@ class _GroupChatState extends State<GroupChat> {
   });
   }
 
+  saveGroupInfo(String username) async{
+    var listOfGroups = [];
+    var l = [];
+    List<dynamic> map = [];
+    await Firestore.instance.document("Users/$username").get().then((onValue){
+      if(onValue.exists){
+        map.addAll(onValue.data['groups']);
+        for(int i=0;i<map.length;i++){
+          map[i].forEach((m,f)=>l.add(m));
+        }
+        print(l);
+        if(!l.contains(groupId)){
+          map.add({groupId : groupName});
+          onValue.reference.updateData({'groups' : map});
+        }
+      }
+    });
+    listOfGroups.forEach((f)=>print(f));
+  }
+
   @override
   void initState() {
     super.initState();
-    snap = createGroup();
+    groupId = widget.groupId;
+    groupName = widget.groupName;
+    saveGroupInfo(widget.username);
   }
 
   @override
@@ -127,10 +137,11 @@ class _GroupChatState extends State<GroupChat> {
           actions: <Widget>[
             IconButton(
               onPressed: (){
-                print(widget.username);
                 showSearch(
                 context: context,
                 delegate: AddMembers(
+                  groupId: groupId,
+                  groupName: groupName,
                   username: widget.username
                 )
               );},
@@ -146,18 +157,17 @@ class _GroupChatState extends State<GroupChat> {
             children: <Widget>[
               Flexible(
                 child:StreamBuilder(
-                  stream: snap,
+                  stream: createGroup(),
                   builder: (context,snapshot)
                   {
                     listMsg = [];
                     if(!snapshot.hasData) return CircularProgressIndicator();
                     else{
                       List<DocumentSnapshot> document = snapshot.data.documents;
-                      print(document.length);
                       for(int i=0;i<document.length;i++)
                       {
                         listMsg.add([document[i]["content"],
-                        document[i]["isMe"].compareTo(widget.username)==0?false:true,
+                        document[i]["sender"].compareTo(widget.username)==0?false:true,
                         document[i]["timestamp"]]);
                       }
                       return ListView.builder(
@@ -229,14 +239,29 @@ class _GroupChatState extends State<GroupChat> {
 
 class AddMembers extends SearchDelegate<String>{
   final String username;
-  AddMembers({this.username});
-  List<String> friends;
+  final String groupId;
+  final String groupName;
+  AddMembers({this.username,this.groupId,this.groupName});
+  var friends;
 
   final CollectionReference collectionReference = Firestore.instance.collection("Users");
   List<String> userList = ["null"];
   List<String> presentList = ["null"];
   List<String> friendSuggestion = [];
   var users;
+
+  saveGroupInfo(String username) async{
+    var listOfGroups = [];
+    var l;
+    List<dynamic> map = [];
+    await Firestore.instance.document("Users/$username").get().then((onValue){
+      if(onValue.exists){
+        map.addAll(onValue.data['groups']);
+        map.add({groupId : groupName});
+        onValue.reference.updateData({'groups' : map});
+      }
+    });
+  }
   
   Future<List<String>> addfriends(String username) async{
   final DocumentReference documentReference = Firestore.instance.document("Users/$username");
@@ -275,7 +300,9 @@ class AddMembers extends SearchDelegate<String>{
          {
            friendSuggestion.add(friends[i].toString());
          }
-     return friendSuggestion;}
+     return friendSuggestion;
+    }
+
 Future<List<String>> checkpart2(String s) async{
     DocumentReference reference = Firestore.instance.document("People/People");
     await reference.get().then((snapshot)
@@ -331,7 +358,10 @@ Future<List<String>> checkpart2(String s) async{
       itemBuilder: (context,index) => 
       InkWell(
         splashColor: Color(0xFF27E9E1),
-        onTap: (){},
+        onTap: () {
+          Navigator.of(context).pop();
+          saveGroupInfo(snapshot.data[index]);
+        },
               child: Container(
                 child: 
                   Column(
@@ -371,19 +401,10 @@ Future<List<String>> checkpart2(String s) async{
       itemBuilder: (context,index) => 
       InkWell(
         splashColor: Color(0xFF27E9E1),
-        onTap: () async {
+        onTap: () async{
                   //Adding people to each other's friendlist if one selects the name of the user.
-                   var list = await addfriends(username);
-                   if(!list.contains(snapshot.data[index]))
-                   {
-                     list.add(snapshot.data[index].toString());
-                     DocumentReference ref = Firestore.instance.document("Users/$username");
-                     Map<String,dynamic> peopledata = <String,dynamic>{
-                      "friends" : list,
-                            };
-                      await ref.updateData(peopledata).whenComplete(()
-                      {}).catchError((e)=>print(e));
-                   }
+                   Navigator.of(context).pop();
+                   await saveGroupInfo(snapshot.data[index]);
                   },
               child: Container(
                 child: 
