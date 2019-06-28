@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
+import 'package:intl/intl.dart';
 import 'package:talking_pigeon_x/chatpage.dart';
 
 
@@ -45,6 +46,29 @@ class _GroupChatState extends State<GroupChat> {
     listMsg.add([msg,notme,timestamp]);
     return listMsg;
   }
+  
+  String readTimestamp(int timestamp) {
+    var now = new DateTime.now();
+    var format = new DateFormat('HH:mm a');
+    var date = new DateTime.fromMicrosecondsSinceEpoch(timestamp * 1000);
+    var diff = now.difference(date);
+    var time = '';
+
+    if (diff.inSeconds <= 0 || diff.inSeconds > 0 && diff.inMinutes == 0 || diff.inMinutes > 0 && diff.inHours == 0 || diff.inHours > 0 && diff.inDays == 0) {
+      time = 'Today at '+format.format(date);
+    } else if (diff.inDays > 0 && diff.inDays < 7) {
+      if (diff.inDays == 1) {
+        time = 'Yesterday at '+format.format(date);
+      } else {
+        time = diff.inDays.toString() + ' DAYS AGO';
+      }
+    } else {
+      format = DateFormat("HH:mm a on MMM d, y");
+      time = format.format(date);
+    }
+
+    return time;
+  }
 
   runTransactionToAddMembers(String uname,String groupId){
     List<String> groups;
@@ -64,7 +88,7 @@ class _GroupChatState extends State<GroupChat> {
     if(textEditingController.value.text!="")
       {
   setState(() {
-   messageList(textEditingController.value.text,false,time());
+   messageList(textEditingController.value.text,false,readTimestamp(timeStamp));
    listScrollController.animateTo(0.0, duration: Duration(milliseconds: 300), curve: Curves.easeOut);
   //Refreshing widget when new message is sent or appears. 
   });
@@ -180,10 +204,10 @@ class _GroupChatState extends State<GroupChat> {
                           return Column(
                               crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: <Widget>[
-                                    Presentmessage(message: listMsg[i][0],
-                                    notme: listMsg[i][1],
+                                    Bubble(message: listMsg[i][0],
+                                    notMe: listMsg[i][1],
                                     delivered: true,
-                                    time: listMsg[i][2],),
+                                    time: readTimestamp(int.parse(listMsg[i][2])),),
                               ],
                             );
                          }
@@ -251,8 +275,6 @@ class AddMembers extends SearchDelegate<String>{
   var users;
 
   saveGroupInfo(String username) async{
-    var listOfGroups = [];
-    var l;
     List<dynamic> map = [];
     await Firestore.instance.document("Users/$username").get().then((onValue){
       if(onValue.exists){
@@ -343,6 +365,57 @@ Future<List<String>> checkpart2(String s) async{
 
   @override
   Widget buildResults(BuildContext context) {
+    return FutureBuilder(
+      future: checkpart2(query),
+      builder: (BuildContext context, AsyncSnapshot snapshot){
+       if(snapshot.connectionState==ConnectionState.done)
+        if (snapshot.data.length < 1)
+                return Container(
+                  child: Center(
+                    child: Text("No user found"),
+                  ),
+                );
+      else
+       return ListView.builder(
+      itemBuilder: (context,index) => 
+      InkWell(
+        splashColor: Color(0xFF27E9E1),
+        onTap: () async{
+                  //Adding people to each other's friendlist if one selects the name of the user.
+                   Navigator.of(context).pop();
+                   await saveGroupInfo(snapshot.data[index]);
+                  },
+              child: Container(
+                child: 
+                  Column(
+          children: <Widget>[
+            ListTile(
+                  leading: Icon(Icons.person),
+                  title: Text(snapshot.data[index]),
+            ),
+            Padding(
+                  padding: EdgeInsets.only(top: 2.0),
+            ),
+            Divider(
+                  color: Colors.grey,
+                  height: 2.0,
+                  indent: 70.0,
+            )
+          ],
+        ),
+              ),
+      ),
+      itemCount: snapshot.data?.length??0,
+    );
+    else
+    {
+      return Center(child: SpinKitDoubleBounce(
+                          size: 60.0,
+                          color: Color(0xFF27E9E1),
+                        ));
+    }
+      }
+    );
   }
 
   @override
@@ -397,6 +470,13 @@ Future<List<String>> checkpart2(String s) async{
       future: checkpart2(query),
       builder: (BuildContext context, AsyncSnapshot snapshot){
        if(snapshot.connectionState==ConnectionState.done)
+        if (snapshot.data.length < 1)
+                return Container(
+                  child: Center(
+                    child: Text("No user found"),
+                  ),
+                );
+      else
        return ListView.builder(
       itemBuilder: (context,index) => 
       InkWell(

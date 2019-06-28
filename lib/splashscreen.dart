@@ -52,7 +52,7 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    infoAvailable().then((e)=>print(e));
+    infoAvailable();
   }
 
   @override

@@ -11,7 +11,8 @@ class LoginScreen extends StatefulWidget {
   _LoginScreenState createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStateMixin {
+class _LoginScreenState extends State<LoginScreen>
+    with SingleTickerProviderStateMixin {
   final scaffoldKey = new GlobalKey<ScaffoldState>();
   TabController tabController;
   TextEditingController tec;
@@ -32,10 +33,8 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-          theme: ThemeData(
-            primarySwatch: Colors.teal
-          ),
-          home: new Scaffold(
+      theme: ThemeData(primarySwatch: Colors.teal),
+      home: new Scaffold(
           appBar: new AppBar(
             bottomOpacity: 0.7,
             title: new Text(
@@ -112,7 +111,7 @@ class _SignupState extends State<Signup> with SingleTickerProviderStateMixin {
     super.dispose();
   }
 
-    Future<void> saveUserInfo(String username, String password) async{
+  Future<void> saveUserInfo(String username, String password) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     prefs.setString('username', username);
     prefs.setString('password', password);
@@ -128,29 +127,28 @@ class _SignupState extends State<Signup> with SingleTickerProviderStateMixin {
   }
 
   Future<int> addUserToPeopleDB() async {
-    var temp;
     int ifExist = 1;
     //Checking condition whether the username exists already, firebase automatically checks whether the email is already used.
     DocumentReference peopleDocument =
         Firestore.instance.document("People/People");
     await peopleDocument.get().then((snapshot) {
-      ifExist = snapshot.data.values.toList()[0].contains(userData.uid)?1:0;
+      ifExist = snapshot.data.values.toList()[0].contains(userData.uid) ? 1 : 0;
       if (ifExist == 1) {
         final snackbar1 = new SnackBar(
           content: Text(
               "Username: ${userData.uid} already exists, please choose another one."),
         );
         Scaffold.of(context).showSnackBar(snackbar1);
-      } 
-      else {
+      } else {
         //Code written below enters the users info into the People's database which consists of the list of user Talking Pigeon has.
         var people = snapshot.data["People"].toList();
-        people.add("${userData.uid}"); //Add here what new content wants to be added.
+        people.add(
+            "${userData.uid}"); //Add here what new content wants to be added.
         Map<String, dynamic> peopledata = <String, dynamic>{
           "People": people,
         };
         print(people);
-        peopleDocument.updateData(peopledata).whenComplete((){
+        peopleDocument.updateData(peopledata).whenComplete(() {
           print("User appended");
         });
       }
@@ -162,48 +160,52 @@ class _SignupState extends State<Signup> with SingleTickerProviderStateMixin {
     final DocumentReference documentReference =
         Firestore.instance.document("Users/${userData.uid}");
     List<String> error;
-    if (userData.email != null && userData.password != null && userData.displayName != null) {
+    if (userData.email != null &&
+        userData.password != null &&
+        userData.displayName != null) {
       int ifExist = await addUserToPeopleDB();
-      if(ifExist == 0){
-      try {
-        progress = 1;
-        setState(() {});
-        await userAuth.createUser(userData);
-        Map<String, dynamic> userinfo = <String, dynamic>{
-          "name": "${userData.displayName}",
-          "username": "${userData.uid}",
-          "email": "${userData.email}",
-          "friends": [],
-          "groups" : []
-        };
-        documentReference.setData(userinfo).whenComplete(() {
-         final snackbar1 = new SnackBar(
-          content: Text(
-              "Welcome, ${userData.displayName}"), //replace name with database name.
-        );
-        Scaffold.of(context).showSnackBar(snackbar1);
-        }).catchError((e) => print(e));
-        
-        saveUserInfo(userData.uid, userData.password);
-        Timer(
-            Duration(milliseconds: 400),
-            () => Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(
-                    builder: (context) => ChatScreen(
-                          username: userData.uid,
-                        ))));
-      } catch (e) {
-        progress = 0;
-        setState(() {});
-        print('Error: $e');
-        error = e.toString().split("(");
-        error = error[1].toString().split(",");
-        final snackbar2 = new SnackBar(
-          content: Text("Sign up failed because${error[1].toLowerCase().toString()}"),
-        );
-        Scaffold.of(context).showSnackBar(snackbar2);
-      }}
+      if (ifExist == 0) {
+        try {
+          progress = 1;
+          setState(() {});
+          await userAuth.createUser(userData);
+          Map<String, dynamic> userinfo = <String, dynamic>{
+            "name": "${userData.displayName}",
+            "username": "${userData.uid}",
+            "email": "${userData.email}",
+            "friends": [],
+            "groups": []
+          };
+          documentReference.setData(userinfo).whenComplete(() {
+            final snackbar1 = new SnackBar(
+              content: Text(
+                  "Welcome, ${userData.displayName}"), //replace name with database name.
+            );
+            Scaffold.of(context).showSnackBar(snackbar1);
+          }).catchError((e) => print(e));
+
+          saveUserInfo(userData.uid, userData.password);
+          Timer(
+              Duration(milliseconds: 400),
+              () => Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) => ChatScreen(
+                            username: userData.uid,
+                          ))));
+        } catch (e) {
+          progress = 0;
+          setState(() {});
+          print('Error: $e');
+          error = e.toString().split("(");
+          error = error[1].toString().split(",");
+          final snackbar2 = new SnackBar(
+            content: Text(
+                "Sign up failed because${error[1].toLowerCase().toString()}"),
+          );
+          Scaffold.of(context).showSnackBar(snackbar2);
+        }
+      }
     } else {
       progress = 0;
       setState(() {});
@@ -391,7 +393,7 @@ class _SigninState extends State<Signin> with SingleTickerProviderStateMixin {
     super.dispose();
   }
 
-   Future<void> saveUserInfo(String username, String password) async{
+  Future<void> saveUserInfo(String username, String password) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     prefs.setString('username', username);
     prefs.setString('password', password);
@@ -403,7 +405,6 @@ class _SigninState extends State<Signin> with SingleTickerProviderStateMixin {
       form.save();
       performlogin();
     }
-    
   }
 
   void performlogin() async {
@@ -412,7 +413,7 @@ class _SigninState extends State<Signin> with SingleTickerProviderStateMixin {
     final DocumentReference documentReference =
         Firestore.instance.document("Users/${userData.uid}");
     final snackbar1 = new SnackBar(
-      content: Text("Sign in successful :)"),
+      content: Text("Success",textAlign: TextAlign.center,),
     );
     await documentReference.get().then((snapshot) {
       if (snapshot.exists) {
@@ -432,6 +433,13 @@ class _SigninState extends State<Signin> with SingleTickerProviderStateMixin {
                     builder: (context) => ChatScreen(
                           username: userData.uid,
                         ))));
+      } else {
+        setState(() {
+          final snackbar2 = new SnackBar(
+            content: Text("Sign in failed because your email is not verified.",textAlign: TextAlign.center,),
+          );
+          Scaffold.of(context).showSnackBar(snackbar2);
+        });
       }
     } catch (e) {
       setState(() {});

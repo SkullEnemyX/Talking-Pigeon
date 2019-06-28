@@ -118,8 +118,8 @@ class _ChatPageState extends State<ChatPage> {
                           return Column(
                               crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: <Widget>[
-                                    Presentmessage(message: listMsg[i][0],
-                                    notme: listMsg[i][1],
+                                    Bubble(message: listMsg[i][0],
+                                    notMe: listMsg[i][1],
                                     delivered: true,
                                     time: readTimestamp(int.parse(listMsg[i][2])),),
                               ],
@@ -174,7 +174,7 @@ class _ChatPageState extends State<ChatPage> {
     );
   }
 
-  String readTimestamp(int timestamp) {
+    String readTimestamp(int timestamp) {
     var now = new DateTime.now();
     var format = new DateFormat('HH:mm a');
     var date = new DateTime.fromMicrosecondsSinceEpoch(timestamp * 1000);
@@ -182,25 +182,20 @@ class _ChatPageState extends State<ChatPage> {
     var time = '';
 
     if (diff.inSeconds <= 0 || diff.inSeconds > 0 && diff.inMinutes == 0 || diff.inMinutes > 0 && diff.inHours == 0 || diff.inHours > 0 && diff.inDays == 0) {
-      time = format.format(date);
+      time = 'Today at '+format.format(date);
     } else if (diff.inDays > 0 && diff.inDays < 7) {
       if (diff.inDays == 1) {
-        time = diff.inDays.toString() + ' DAY AGO';
+        time = 'Yesterday at '+format.format(date);
       } else {
         time = diff.inDays.toString() + ' DAYS AGO';
       }
     } else {
-      if (diff.inDays == 7) {
-        time = (diff.inDays / 7).floor().toString() + ' WEEK AGO';
-      } else {
-
-        time = (diff.inDays / 7).floor().toString() + ' WEEKS AGO';
-      }
+      format = DateFormat("HH:mm a on MMM d, y");
+      time = format.format(date);
     }
 
     return time;
   }
-
 
   void sendMessage() {
   int timeStamp = DateTime.now().millisecondsSinceEpoch;
@@ -233,25 +228,6 @@ class _ChatPageState extends State<ChatPage> {
   });
 
   }
-  }
-}
-
-class Presentmessage extends StatelessWidget {
-  final String message;
-  final bool notme;
-  final bool delivered;
-  final String time;
-   Presentmessage({
-    Key key,
-    this.delivered,
-    this.message,
-    this.notme,
-    this.time,
-  }) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Bubble(message: message,notMe: notme,delivered: delivered,time: time,);
   }
 }
 
@@ -289,7 +265,7 @@ class Bubble extends StatelessWidget{
                       //color: Colors.red,
                       constraints: BoxConstraints(
                         maxWidth: width,
-                        minWidth: 110.0
+                        minWidth: 120.0
                       ),
                       decoration: BoxDecoration(
                       boxShadow: [
@@ -305,7 +281,7 @@ class Bubble extends StatelessWidget{
                 children: <Widget>[
                   Padding(
                     padding: EdgeInsets.only(right: 48.0,bottom: 12.0),
-                    child: Text(message,style: TextStyle(fontSize: 16.0),),
+                    child: Text(message),
                   ),
                   Positioned(
                     bottom: 0.0,
@@ -332,21 +308,4 @@ class Bubble extends StatelessWidget{
       ],
     );
   }
-}
-String time() {
- String value = DateTime.now().toString().split(" ")[1].substring(0,5);
- String fullDate = DateTime.now().toString().substring(0,10);
- print(fullDate);
- if(int.parse(value.substring(0,2))>=12)
- {
-   return(int.parse(value.substring(0,2))==12?
-   (int.parse(value.substring(0,2))).toString() +"${value.substring(2,5)}" +" PM " + fullDate:
-   (int.parse(value.substring(0,2))-12).toString() +"${value.substring(2,5)}" +" PM " + fullDate);
- }
- else
- {
-   return(int.parse(value.substring(0,2))==00?
-   (int.parse(value.substring(0,2))+12).toString() +"${value.substring(2,5)}" +" AM " + fullDate:
-   (int.parse(value.substring(0,2))).toString() +"${value.substring(2,5)}" +" AM " + fullDate);
- }
 }
