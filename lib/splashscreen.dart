@@ -18,30 +18,32 @@ class _SplashScreenState extends State<SplashScreen> {
   UserData userData = UserData();
 
   Future infoAvailable() async {
-    
     SharedPreferences prefs = await SharedPreferences.getInstance();
     Userauthentication userAuth = Userauthentication();
     String _uid;
-    _username = (prefs.getString('username') ??'');
-    String _password = (prefs.getString('password')??'');
-    if (_username!='' && _password!='') {
-      await Firestore.instance.document("Users/$_username").get().then((snapshot) {
-      if (snapshot.exists) {
-        userData.email = snapshot.data['email'];
-        userData.password = _password;
-        userData.uid = _username;
-      }
-    });
+    _username = (prefs.getString('username') ?? '');
+    String _password = (prefs.getString('password') ?? '');
+    if (_username != '' && _password != '') {
+      await Firestore.instance
+          .document("Users/$_username")
+          .get()
+          .then((snapshot) {
+        if (snapshot.exists) {
+          userData.email = snapshot.data['email'];
+          userData.password = _password;
+          userData.uid = _username;
+        }
+      });
       try {
-      _uid = await userAuth.verifyuser(userData);
-      if (_uid != null) {
-        setState(() {
-          credentialCorrectness = true;
-        });
+        _uid = await userAuth.verifyuser(userData);
+        if (_uid != null) {
+          setState(() {
+            credentialCorrectness = true;
+          });
+        }
+      } catch (e) {
+        throw e;
       }
-    } catch (e) {
-      throw e;
-    }
     } else {
       setState(() {
         credentialCorrectness = false;
@@ -62,7 +64,7 @@ class _SplashScreenState extends State<SplashScreen> {
       debugShowCheckedModeBanner: false,
       home: SplashWallpaper(
         credentialsCorrect: credentialCorrectness,
-        username: credentialCorrectness?userData.uid:'',
+        username: credentialCorrectness ? userData.uid : '',
       ),
     );
   }
@@ -71,12 +73,13 @@ class _SplashScreenState extends State<SplashScreen> {
 class SplashWallpaper extends StatefulWidget {
   final bool credentialsCorrect;
   final String username;
-  SplashWallpaper({this.credentialsCorrect = false,@required this.username});
+  SplashWallpaper({this.credentialsCorrect = false, @required this.username});
   @override
   _SplashWallpaperState createState() => _SplashWallpaperState();
 }
 
-class _SplashWallpaperState extends State<SplashWallpaper> with SingleTickerProviderStateMixin {
+class _SplashWallpaperState extends State<SplashWallpaper>
+    with SingleTickerProviderStateMixin {
   AnimationController _iconAnimationController;
   Animation<double> _iconAnimation;
 
@@ -89,12 +92,14 @@ class _SplashWallpaperState extends State<SplashWallpaper> with SingleTickerProv
         parent: _iconAnimationController, curve: Curves.bounceOut);
     _iconAnimation.addListener(() => this.setState(() {}));
     _iconAnimationController.forward();
-    Timer(Duration(seconds: 5),
+    Timer(
+        Duration(seconds: 5),
         () => Navigator.of(context).pushReplacement(MaterialPageRoute(
-          builder: (context)=>widget.credentialsCorrect?ChatScreen(
-            username: widget.username,
-          ):LoginScreen()
-        )));
+            builder: (context) => widget.credentialsCorrect
+                ? ChatScreen(
+                    username: widget.username,
+                  )
+                : LoginScreen())));
   }
 
   @override

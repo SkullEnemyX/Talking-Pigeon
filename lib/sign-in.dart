@@ -413,7 +413,10 @@ class _SigninState extends State<Signin> with SingleTickerProviderStateMixin {
     final DocumentReference documentReference =
         Firestore.instance.document("Users/${userData.uid}");
     final snackbar1 = new SnackBar(
-      content: Text("Success",textAlign: TextAlign.center,),
+      content: Text(
+        "Success",
+        textAlign: TextAlign.center,
+      ),
     );
     await documentReference.get().then((snapshot) {
       if (snapshot.exists) {
@@ -436,7 +439,10 @@ class _SigninState extends State<Signin> with SingleTickerProviderStateMixin {
       } else {
         setState(() {
           final snackbar2 = new SnackBar(
-            content: Text("Sign in failed because your email is not verified.",textAlign: TextAlign.center,),
+            content: Text(
+              "Sign in failed because your email is not verified.",
+              textAlign: TextAlign.center,
+            ),
           );
           Scaffold.of(context).showSnackBar(snackbar2);
         });

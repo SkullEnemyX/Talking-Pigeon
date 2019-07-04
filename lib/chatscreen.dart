@@ -1,12 +1,12 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:intl/intl.dart';
+import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:talking_pigeon_x/authentication.dart';
 import 'package:talking_pigeon_x/chatpage.dart';
-import 'package:intl/intl.dart';
 import 'package:talking_pigeon_x/groupchat.dart';
 import 'package:talking_pigeon_x/sign-in.dart';
-import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:unicorndial/unicorndial.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -180,7 +180,7 @@ class _ChatScreenState extends State<ChatScreen> {
               padding: new EdgeInsets.symmetric(vertical: 20.0),
             ),
             Text(
-              "TALKING PIGEON",
+              "HCL ConnectX",
               style: TextStyle(fontSize: 28.0, color: greet, wordSpacing: 5.0),
             )
           ],
@@ -253,47 +253,49 @@ class _ChatScreenState extends State<ChatScreen> {
                                           onDismissed: (direction) async {
                                             if (snapshot.data[i][1] == 0) {
                                               var list = [];
-                                                await friendfunc().then((onValue){
-                                                  onValue.forEach((f)=>list.add(f[0]));
-                                                });
-                                                list.removeAt(i);
-                                                Map<String, dynamic>
-                                                    peopledata =
-                                                    <String, dynamic>{
-                                                  "friends": list,
-                                                };
-                                                await Firestore.instance
-                                                    .document(
-                                                        "Users/$globalUsername")
-                                                    .updateData(peopledata)
-                                                    .whenComplete(() {})
-                                                    .catchError(
-                                                        (e) => print(e));
-                                              } else {
-                                                var list = [];
-                                                await groupList().then((onValue){
-                                                  onValue.forEach((f)=>list.add({f[0]:f[2]}));
-                                                });
-                                                
-                                                for(int k=0;k<list.length;k++){
-                                                  if(list[k].containsKey(snapshot.data[i][0])){
-                                                      list.removeAt(k);
-                                                    }
+                                              await friendfunc()
+                                                  .then((onValue) {
+                                                onValue.forEach(
+                                                    (f) => list.add(f[0]));
+                                              });
+                                              list.removeAt(i);
+                                              Map<String, dynamic> peopledata =
+                                                  <String, dynamic>{
+                                                "friends": list,
+                                              };
+                                              await Firestore.instance
+                                                  .document(
+                                                      "Users/$globalUsername")
+                                                  .updateData(peopledata)
+                                                  .whenComplete(() {})
+                                                  .catchError((e) => print(e));
+                                            } else {
+                                              var list = [];
+                                              await groupList().then((onValue) {
+                                                onValue.forEach((f) =>
+                                                    list.add({f[0]: f[2]}));
+                                              });
+
+                                              for (int k = 0;
+                                                  k < list.length;
+                                                  k++) {
+                                                if (list[k].containsKey(
+                                                    snapshot.data[i][0])) {
+                                                  list.removeAt(k);
                                                 }
-                                                print(list);
-                                                Map<String, dynamic>
-                                                    peopledata =
-                                                    <String, dynamic>{
-                                                  "groups": list,
-                                                };
-                                                await Firestore.instance
-                                                    .document(
-                                                        "Users/$globalUsername")
-                                                    .updateData(peopledata)
-                                                    .whenComplete(() {})
-                                                    .catchError(
-                                                        (e) => print(e));
                                               }
+                                              print(list);
+                                              Map<String, dynamic> peopledata =
+                                                  <String, dynamic>{
+                                                "groups": list,
+                                              };
+                                              await Firestore.instance
+                                                  .document(
+                                                      "Users/$globalUsername")
+                                                  .updateData(peopledata)
+                                                  .whenComplete(() {})
+                                                  .catchError((e) => print(e));
+                                            }
                                           },
                                           child: Column(
                                             children: <Widget>[
