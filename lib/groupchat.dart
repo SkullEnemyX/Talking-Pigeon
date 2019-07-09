@@ -224,6 +224,7 @@ class _GroupChatState extends State<GroupChat> {
                                     delivered: true,
                                     time:
                                         readTimestamp(int.parse(listMsg[i][2])),
+                                    methodVia: 1,
                                   ),
                                 ],
                               );

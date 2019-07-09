@@ -17,22 +17,22 @@ dependencies:
   firebase_auth:
   cloud_firestore:
   unicorndial:
-  
+  http:
+  image_picker:
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
 
 flutter:
-
   uses-material-design: true
 
   # To add assets to your application, add an assets section, like this:
   assets:
-      - assets/cherry.jpg
-      - assets/logo.png
-      - assets/wally-1.jpg
-    
+    - assets/cherry.jpg
+    - assets/logo.png
+    - assets/wally-1.jpg
+
   fonts:
     - family: cassandra
       fonts:

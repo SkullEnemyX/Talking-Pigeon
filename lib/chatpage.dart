@@ -1,6 +1,9 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:http/http.dart' as http;
 
 class ChatPage extends StatefulWidget {
   final Color greet;
@@ -113,9 +116,11 @@ class _ChatPageState extends State<ChatPage> {
                             document[i]["isMe"].compareTo(widget.name) == 0
                                 ? false
                                 : true,
-                            document[i]["timestamp"]
+                            document[i]["timestamp"],
+                            document[i]["isImage"]
                           ]);
                         }
+                        print(listMsg);
                         return ListView.builder(
                             reverse: true,
                             itemCount: snapshot.data.documents.length,
@@ -132,6 +137,8 @@ class _ChatPageState extends State<ChatPage> {
                                       delivered: true,
                                       time: readTimestamp(
                                           int.parse(listMsg[i][2])),
+                                      methodVia: 0,
+                                      type: listMsg[i][3] == true ? 1 : 0,
                                     ),
                                   ],
                                 );
@@ -161,6 +168,15 @@ class _ChatPageState extends State<ChatPage> {
                         border: InputBorder.none,
                         fillColor: Colors.transparent,
                         hintText: "Type a message...",
+                        prefixIcon: IconButton(
+                          icon: Icon(
+                            Icons.image,
+                            size: 25.0,
+                          ),
+                          color: Colors.black,
+                          disabledColor: Colors.grey,
+                          onPressed: () => sendMessage(1),
+                        ),
                         suffixIcon: IconButton(
                           icon: Icon(
                             Icons.send,
@@ -168,7 +184,7 @@ class _ChatPageState extends State<ChatPage> {
                           ),
                           color: Colors.black,
                           disabledColor: Colors.grey,
-                          onPressed: sendMessage,
+                          onPressed: () => sendMessage(0),
                         )),
                     controller: textEditingController,
                     keyboardType: TextInputType.multiline,
@@ -206,19 +222,35 @@ class _ChatPageState extends State<ChatPage> {
       if (diff.inDays == 1) {
         time = 'Yesterday at ' + format.format(date);
       } else {
-        time = diff.inDays.toString() + ' DAYS AGO';
+        format = DateFormat("HH:mm a on MMM d, y");
+        time = format.format(date);
       }
-    } else {
-      format = DateFormat("HH:mm a on MMM d, y");
-      time = format.format(date);
     }
-
     return time;
   }
 
-  void sendMessage() {
+  void sendMessage(int type) async {
+    //message type = 0; image type = 1;
     int timeStamp = DateTime.now().millisecondsSinceEpoch;
-    if (textEditingController.value.text != "") {
+    String imageUrl = "";
+    //TODO: if the type == 1(image), then make a post call to the imgBB and fetch the url of the image and post it as a string message.
+    if (type == 1) {
+      var _image = await ImagePicker.pickImage(source: ImageSource.gallery);
+      List<int> imageBytes = _image.readAsBytesSync();
+      imageUrl = base64Encode(imageBytes);
+      print(imageUrl);
+      // Map<String, dynamic> body = {
+      //   "key": "400b0402ee29bc7eb67b70b35f836fcd",
+      //   "image": imageUrl,
+      // };
+      // try {
+      //   var response =
+      //       await http.post("https://api.imgbb.com/1/upload", body: body);
+      //   print(response.body);
+      // } catch (e) {
+      //   print(e);
+      // }
+    } else if (type == 0 && textEditingController.value.text != "") {
       setState(() {
         messageList(
             textEditingController.value.text, false, readTimestamp(timeStamp));
@@ -226,39 +258,50 @@ class _ChatPageState extends State<ChatPage> {
             duration: Duration(milliseconds: 300), curve: Curves.elasticIn);
         //Refreshing widget when new message is sent or appears.
       });
-      var documentReference = Firestore.instance
-          .collection('messages')
-          .document(returnGroupId(widget.name, widget.frienduid))
-          .collection(returnGroupId(widget.name, widget.frienduid))
-          .document(timeStamp.toString());
-
-      Firestore.instance.runTransaction((transaction) async {
-        await transaction.set(
-          documentReference,
-          {
-            'timestamp': timeStamp.toString(),
-            'content': textEditingController.value.text,
-            'isMe': widget.name
-          },
-        );
-      }).whenComplete(() {
-        textEditingController.clear();
-        setState(() {});
-      });
     }
+    var documentReference = Firestore.instance
+        .collection('messages')
+        .document(returnGroupId(widget.name, widget.frienduid))
+        .collection(returnGroupId(widget.name, widget.frienduid))
+        .document(timeStamp.toString());
+
+    Firestore.instance.runTransaction((transaction) async {
+      await transaction.set(
+        documentReference,
+        {
+          'timestamp': timeStamp.toString(),
+          'content': type == 0 ? textEditingController.value.text : imageUrl,
+          'isMe': widget.name,
+          'isImage': type == 1,
+          //this set isImage field to boolean true if it is an image else false if it is a message.
+        },
+      );
+    }).whenComplete(() {
+      textEditingController.clear();
+      setState(() {});
+    });
   }
 }
 
 class Bubble extends StatelessWidget {
-  Bubble({this.message, this.notMe, this.delivered, this.time});
+  Bubble(
+      {this.message,
+      this.notMe,
+      this.delivered,
+      this.time,
+      this.type = 0,
+      this.methodVia = 0});
   final bool delivered;
   final bool notMe;
   final String message;
   final String time;
+  final int type;
+  //This describes whether the message sent is an image or a text.
+  final int methodVia; //For personal chat: 0, for group chat: 1
 
   @override
   Widget build(BuildContext context) {
-    final bg = notMe ? Colors.white : Color(0xFF27E9E1).withOpacity(0.8);
+    final bg = notMe ? Colors.white : Color(0xFF27E9E1).withOpacity(0.7);
     final align = notMe ? CrossAxisAlignment.start : CrossAxisAlignment.end;
     final icon = delivered ? Icons.done_all : Icons.done;
     final double width = MediaQuery.of(context).size.width * 0.75;
@@ -273,53 +316,69 @@ class Bubble extends StatelessWidget {
             bottomLeft: Radius.circular(5.0),
             bottomRight: Radius.circular(10.0),
           );
-    return Column(
-      crossAxisAlignment: align,
-      children: <Widget>[
-        Container(
-          margin: const EdgeInsets.all(10.0),
-          padding: const EdgeInsets.all(8.0),
-          //color: Colors.red,
-          constraints: BoxConstraints(maxWidth: width, minWidth: 120.0),
-          decoration: BoxDecoration(
-            boxShadow: [
-              BoxShadow(
-                  blurRadius: .5,
-                  spreadRadius: 1.0,
-                  color: Colors.black.withOpacity(.12))
-            ],
-            color: bg,
-            borderRadius: radius,
-          ),
-          child: Stack(
+    return type == 1
+        ? Column(
+            crossAxisAlignment: align,
             children: <Widget>[
-              Padding(
-                padding: EdgeInsets.only(right: 48.0, bottom: 12.0),
-                child: Text(message),
-              ),
-              Positioned(
-                bottom: 0.0,
-                right: 0.0,
-                child: Row(
-                  children: <Widget>[
-                    Text(time,
-                        style: TextStyle(
-                          color: Colors.black38,
-                          fontSize: 8.0,
-                        )),
-                    SizedBox(width: 3.0),
-                    Icon(
-                      icon,
-                      size: 12.0,
-                      color: Colors.black38,
-                    )
-                  ],
+              Container(
+                margin: const EdgeInsets.all(10.0),
+                decoration: BoxDecoration(
+                    border: Border.all(color: Colors.white, width: 5.0)),
+                width: width - 50,
+                height: 200.0,
+                child: Image.memory(
+                  base64Decode(message),
+                  fit: BoxFit.cover,
                 ),
               )
             ],
-          ),
-        ),
-      ],
-    );
+          )
+        : Column(
+            crossAxisAlignment: align,
+            children: <Widget>[
+              Container(
+                margin: const EdgeInsets.all(10.0),
+                padding: const EdgeInsets.all(8.0),
+                constraints: BoxConstraints(maxWidth: width, minWidth: 120.0),
+                decoration: BoxDecoration(
+                  boxShadow: [
+                    BoxShadow(
+                        blurRadius: .5,
+                        spreadRadius: 1.0,
+                        color: Colors.black.withOpacity(.12))
+                  ],
+                  color: bg,
+                  borderRadius: radius,
+                ),
+                child: Stack(
+                  children: <Widget>[
+                    Padding(
+                      padding: EdgeInsets.only(right: 48.0, bottom: 12.0),
+                      child: Text(message),
+                    ),
+                    Positioned(
+                      bottom: 0.0,
+                      right: 0.0,
+                      child: Row(
+                        children: <Widget>[
+                          Text(time,
+                              style: TextStyle(
+                                color: Colors.black38,
+                                fontSize: 8.0,
+                              )),
+                          SizedBox(width: 3.0),
+                          Icon(
+                            icon,
+                            size: 12.0,
+                            color: Colors.black38,
+                          )
+                        ],
+                      ),
+                    )
+                  ],
+                ),
+              ),
+            ],
+          );
   }
 }

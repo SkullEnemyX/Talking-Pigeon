@@ -7,6 +7,7 @@ import 'package:talking_pigeon_x/authentication.dart';
 import 'package:talking_pigeon_x/chatpage.dart';
 import 'package:talking_pigeon_x/groupchat.dart';
 import 'package:talking_pigeon_x/sign-in.dart';
+import 'package:talking_pigeon_x/widget/animated_bottombar.dart';
 import 'package:unicorndial/unicorndial.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -29,12 +30,37 @@ class _ChatScreenState extends State<ChatScreen> {
   int gvalue = 0;
   TextEditingController textEditingController = TextEditingController();
   int hour;
+  int selectedBarIndex = 0;
   Userauthentication userAuth = new Userauthentication();
   UserData userData = new UserData();
   bool loadingInProgress;
   String lastMessage;
   String friendid;
   var childButtons = List<UnicornButton>();
+  //Bottom Animated Bar
+  final List<BarItem> barItems = [
+    BarItem(
+      text: "Personal",
+      iconData: Icons.chat_bubble_outline,
+      color: Colors.indigo,
+    ),
+    BarItem(
+      text: "Groups",
+      iconData: Icons.people,
+      color: Colors.pinkAccent,
+    ),
+    BarItem(
+      text: "Search",
+      iconData: Icons.search,
+      color: Colors.yellow.shade900,
+    ),
+    BarItem(
+      text: "Profile",
+      iconData: Icons.person_outline,
+      color: Colors.teal,
+    )
+  ];
+  //Ends here.
 
   @override
   void initState() {
@@ -131,13 +157,10 @@ class _ChatScreenState extends State<ChatScreen> {
       if (diff.inDays == 1) {
         time = 'Yesterday at ' + format.format(date);
       } else {
-        time = diff.inDays.toString() + ' DAYS AGO';
+        format = DateFormat("HH:mm a on MMM d, y");
+        time = format.format(date);
       }
-    } else {
-      format = DateFormat("HH:mm a on MMM d, y");
-      time = format.format(date);
     }
-
     return time;
   }
 
@@ -164,7 +187,7 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
-  Widget _buildBody() {
+  Widget _buildBody(int selection) {
     if (loadingInProgress == true) {
       return new Container(
         color: background,
@@ -191,7 +214,7 @@ class _ChatScreenState extends State<ChatScreen> {
         color: background,
         child: new Column(
           children: <Widget>[
-            new Padding(padding: EdgeInsets.only(top: 30.0)),
+            new Padding(padding: EdgeInsets.only(top: 10.0)),
             Row(
               children: <Widget>[
                 new Padding(padding: EdgeInsets.only(left: 25.0)),
@@ -209,8 +232,6 @@ class _ChatScreenState extends State<ChatScreen> {
                     new Padding(
                       padding: EdgeInsets.only(top: 5.0, left: 30.0),
                     ),
-                    new Text("Personal Conversations",
-                        style: TextStyle(color: Color(0xFF808080)))
                   ],
                 ),
               ],
@@ -224,11 +245,28 @@ class _ChatScreenState extends State<ChatScreen> {
                   ),
                   Expanded(
                       child: FutureBuilder(
-                          future: totalList(),
+                          future: selection == 0 ? friendfunc() : groupList(),
                           builder:
                               (BuildContext context, AsyncSnapshot snapshot) {
                             if (snapshot.connectionState ==
-                                ConnectionState.done) if (snapshot.hasData) {
+                                ConnectionState.waiting) {
+                              return Center(
+                                  child: SpinKitDoubleBounce(
+                                size: 60.0,
+                                color: Color(0xFF27E9E1),
+                              ));
+                            } else if (snapshot.connectionState ==
+                                    ConnectionState.done &&
+                                snapshot.data.length < 1) {
+                              return Center(
+                                child: Text(
+                                  "Add new friends to start the conversation",
+                                  style: TextStyle(
+                                    color: greet,
+                                  ),
+                                ),
+                              );
+                            } else if (snapshot.hasData) {
                               return ListView.builder(
                                   itemCount: snapshot.data?.length ?? 0,
                                   itemBuilder: (context, i) {
@@ -253,15 +291,16 @@ class _ChatScreenState extends State<ChatScreen> {
                                           onDismissed: (direction) async {
                                             if (snapshot.data[i][1] == 0) {
                                               var list = [];
-                                              await friendfunc()
-                                                  .then((onValue) {
-                                                onValue.forEach(
-                                                    (f) => list.add(f[0]));
+                                              setState(() {
+                                                list = snapshot.data;
+                                                list.removeAt(i);
                                               });
-                                              list.removeAt(i);
+                                              var flist = [];
+                                              list.forEach(
+                                                  (f) => flist.add(f[0]));
                                               Map<String, dynamic> peopledata =
                                                   <String, dynamic>{
-                                                "friends": list,
+                                                "friends": flist,
                                               };
                                               await Firestore.instance
                                                   .document(
@@ -435,23 +474,20 @@ class _ChatScreenState extends State<ChatScreen> {
                                       ],
                                     );
                                   });
-                            } else {
-                              return Center(
-                                child: Text(
-                                  "Add new friends to start the conversation",
-                                  style: TextStyle(
-                                    color: greet,
-                                  ),
-                                ),
-                              );
-                            }
-                            else {
+                            } else if (snapshot.data == null) {
                               return Center(
                                   child: SpinKitDoubleBounce(
                                 size: 60.0,
                                 color: Color(0xFF27E9E1),
                               ));
                             }
+                            // else {
+                            //   return Center(
+                            //       child: SpinKitDoubleBounce(
+                            //     size: 60.0,
+                            //     color: Color(0xFF27E9E1),
+                            //   ));
+                            // }
                           }))
                 ],
               ),
@@ -637,6 +673,14 @@ class _ChatScreenState extends State<ChatScreen> {
             child: Icon(Icons.flip_to_front))));
   }
 
+  showScreen(int index) {
+    if (index == 0) {
+      return _buildBody(index);
+    } else if (selectedBarIndex == 1) {
+      return _buildBody(index);
+    }
+  }
+
   @override
   void dispose() {
     textEditingController.dispose();
@@ -646,72 +690,87 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        floatingActionButton: UnicornDialer(
-          childButtons: childButtons,
-          backgroundColor: Colors.transparent,
-          parentButtonBackground: Color(0xFF27E9E1),
-          parentButton: Icon(Icons.add),
-          orientation: UnicornOrientation.VERTICAL,
-        ),
-        appBar: new AppBar(
-          backgroundColor: background,
-          centerTitle: true,
-          title: Text(
-            "Talking Pigeon",
-            style: TextStyle(
-              color: greet,
-              fontSize: 25.0,
-            ),
+      body: showScreen(selectedBarIndex),
+      bottomNavigationBar: AnimatedBottomBar(
+        background: background,
+        onBarTap: (index) {
+          if (index == 2)
+            showSearch(context: context, delegate: UserSearch());
+          else
+            setState(() {
+              selectedBarIndex = index;
+            });
+        },
+        barItems: barItems,
+        animationDuration: const Duration(milliseconds: 150),
+        barStyle: BarStyle(fontSize: 15.0, iconSize: 30.0),
+      ),
+      floatingActionButton: UnicornDialer(
+        childButtons: childButtons,
+        backgroundColor: Colors.transparent,
+        parentButtonBackground: Color(0xFF27E9E1),
+        parentButton: Icon(Icons.add),
+        orientation: UnicornOrientation.VERTICAL,
+      ),
+      appBar: new AppBar(
+        backgroundColor: background,
+        centerTitle: true,
+        title: Text(
+          "Talking Pigeon",
+          style: TextStyle(
+            color: greet,
+            fontSize: 25.0,
           ),
-          leading: new PopupMenuButton<String>(
-            onSelected: menuList,
+        ),
+        leading: new PopupMenuButton<String>(
+          onSelected: menuList,
+          icon: new Icon(
+            Icons.menu,
+            color: Color(0xFF27E9E1),
+            size: 30.0,
+          ),
+          itemBuilder: (BuildContext context) => <PopupMenuItem<String>>[
+                PopupMenuItem<String>(
+                  value: 'a',
+                  child: ListTile(
+                    leading: Icon(Icons.edit),
+                    title: Text("$theme"),
+                  ),
+                ),
+                const PopupMenuItem<String>(
+                  value: 'b',
+                  child: ListTile(
+                    leading: Icon(Icons.cancel),
+                    title: Text("Sign Out"),
+                  ),
+                ),
+                const PopupMenuItem<String>(
+                  value: 'c',
+                  child: ListTile(
+                    leading: Icon(Icons.exit_to_app),
+                    title: Text("Exit"),
+                  ),
+                ),
+              ],
+        ),
+        elevation: 0.0,
+        actions: <Widget>[
+          new IconButton(
             icon: new Icon(
-              Icons.menu,
-              color: Color(0xFF27E9E1),
+              Icons.search,
               size: 30.0,
             ),
-            itemBuilder: (BuildContext context) => <PopupMenuItem<String>>[
-                  PopupMenuItem<String>(
-                    value: 'a',
-                    child: ListTile(
-                      leading: Icon(Icons.edit),
-                      title: Text("$theme"),
-                    ),
-                  ),
-                  const PopupMenuItem<String>(
-                    value: 'b',
-                    child: ListTile(
-                      leading: Icon(Icons.cancel),
-                      title: Text("Sign Out"),
-                    ),
-                  ),
-                  const PopupMenuItem<String>(
-                    value: 'c',
-                    child: ListTile(
-                      leading: Icon(Icons.exit_to_app),
-                      title: Text("Exit"),
-                    ),
-                  ),
-                ],
+            onPressed: () {
+              showSearch(context: context, delegate: UserSearch());
+            },
+            color: Color(0xFF27E9E1),
           ),
-          elevation: 0.0,
-          actions: <Widget>[
-            new IconButton(
-              icon: new Icon(
-                Icons.search,
-                size: 30.0,
-              ),
-              onPressed: () {
-                showSearch(context: context, delegate: UserSearch());
-              },
-              color: Color(0xFF27E9E1),
-            ),
-            Padding(
-              padding: EdgeInsets.only(right: 5.0),
-            ),
-          ],
-        ),
-        body: _buildBody());
+          Padding(
+            padding: EdgeInsets.only(right: 5.0),
+          ),
+        ],
+      ),
+    );
   }
 }
 
