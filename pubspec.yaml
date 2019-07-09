@@ -16,6 +16,7 @@ dependencies:
   intl:
   firebase_auth:
   cloud_firestore:
+  firebase_messaging: ^5.1.0
   unicorndial:
   http:
   image_picker:

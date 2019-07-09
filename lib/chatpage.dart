@@ -1,9 +1,11 @@
 import 'dart:convert';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:http/http.dart' as http;
+import 'package:http/http.dart'
+    as http; //Used in case when the image needs to be uploaded to imgbb.
 
 class ChatPage extends StatefulWidget {
   final Color greet;
@@ -28,6 +30,7 @@ class _ChatPageState extends State<ChatPage> {
     setState(() {
       snap = snapshotReturn();
     });
+    fetchDeviceID();
   }
 
   @override
@@ -40,7 +43,23 @@ class _ChatPageState extends State<ChatPage> {
       new TextEditingController();
   List listMsg = [];
   String msg;
+  String receiverToken;
+  final FirebaseMessaging _messaging = FirebaseMessaging();
   final ScrollController listScrollController = new ScrollController();
+
+  fetchDeviceID() async {
+    final DocumentReference documentReference =
+        Firestore.instance.document("Users/${widget.frienduid}");
+    await documentReference.get().then((snapshot) {
+      if (snapshot.exists) {
+        receiverToken = snapshot.data["deviceId"];
+        print(receiverToken);
+        _messaging.getToken().then((token) {
+          print(token);
+        });
+      }
+    });
+  }
 
   messageList(String msg, bool notme, String timestamp) {
     if (listMsg.length >= 20) {
@@ -235,7 +254,10 @@ class _ChatPageState extends State<ChatPage> {
     String imageUrl = "";
     //TODO: if the type == 1(image), then make a post call to the imgBB and fetch the url of the image and post it as a string message.
     if (type == 1) {
-      var _image = await ImagePicker.pickImage(source: ImageSource.gallery);
+      var _image = await ImagePicker.pickImage(
+          source: ImageSource.gallery, maxHeight: 800, maxWidth: 800);
+      print(_image.stat());
+      //Compressing big images to enable successful send.
       List<int> imageBytes = _image.readAsBytesSync();
       imageUrl = base64Encode(imageBytes);
       print(imageUrl);
@@ -273,6 +295,7 @@ class _ChatPageState extends State<ChatPage> {
           'content': type == 0 ? textEditingController.value.text : imageUrl,
           'isMe': widget.name,
           'isImage': type == 1,
+          'receiverToken': receiverToken
           //this set isImage field to boolean true if it is an image else false if it is a message.
         },
       );
@@ -316,69 +339,95 @@ class Bubble extends StatelessWidget {
             bottomLeft: Radius.circular(5.0),
             bottomRight: Radius.circular(10.0),
           );
-    return type == 1
-        ? Column(
-            crossAxisAlignment: align,
-            children: <Widget>[
-              Container(
-                margin: const EdgeInsets.all(10.0),
-                decoration: BoxDecoration(
-                    border: Border.all(color: Colors.white, width: 5.0)),
-                width: width - 50,
-                height: 200.0,
-                child: Image.memory(
-                  base64Decode(message),
-                  fit: BoxFit.cover,
-                ),
-              )
-            ],
-          )
-        : Column(
-            crossAxisAlignment: align,
-            children: <Widget>[
-              Container(
-                margin: const EdgeInsets.all(10.0),
-                padding: const EdgeInsets.all(8.0),
-                constraints: BoxConstraints(maxWidth: width, minWidth: 120.0),
-                decoration: BoxDecoration(
-                  boxShadow: [
-                    BoxShadow(
-                        blurRadius: .5,
-                        spreadRadius: 1.0,
-                        color: Colors.black.withOpacity(.12))
-                  ],
-                  color: bg,
-                  borderRadius: radius,
-                ),
-                child: Stack(
-                  children: <Widget>[
-                    Padding(
-                      padding: EdgeInsets.only(right: 48.0, bottom: 12.0),
-                      child: Text(message),
-                    ),
-                    Positioned(
-                      bottom: 0.0,
-                      right: 0.0,
-                      child: Row(
-                        children: <Widget>[
-                          Text(time,
-                              style: TextStyle(
-                                color: Colors.black38,
-                                fontSize: 8.0,
-                              )),
-                          SizedBox(width: 3.0),
-                          Icon(
-                            icon,
-                            size: 12.0,
-                            color: Colors.black38,
-                          )
-                        ],
+    return InkWell(
+      onTap: () {
+        Navigator.of(context).push(
+            MaterialPageRoute(builder: (context) => ImageScreen(message)));
+      },
+      child: type == 1
+          ? Column(
+              crossAxisAlignment: align,
+              children: <Widget>[
+                Container(
+                  margin: const EdgeInsets.all(10.0),
+                  decoration: BoxDecoration(
+                      border: Border.all(
+                          color: notMe ? Colors.white : Color(0xFF242424),
+                          width: 5.0)),
+                  width: width - 20,
+                  height: width - 50,
+                  child: Image.memory(
+                    base64Decode(message),
+                    fit: BoxFit.cover,
+                  ),
+                )
+              ],
+            )
+          : Column(
+              crossAxisAlignment: align,
+              children: <Widget>[
+                Container(
+                  margin: const EdgeInsets.all(10.0),
+                  padding: const EdgeInsets.all(8.0),
+                  constraints: BoxConstraints(maxWidth: width, minWidth: 120.0),
+                  decoration: BoxDecoration(
+                    boxShadow: [
+                      BoxShadow(
+                          blurRadius: .5,
+                          spreadRadius: 1.0,
+                          color: Colors.black.withOpacity(.12))
+                    ],
+                    color: bg,
+                    borderRadius: radius,
+                  ),
+                  child: Stack(
+                    children: <Widget>[
+                      Padding(
+                        padding: EdgeInsets.only(right: 48.0, bottom: 12.0),
+                        child: Text(message),
                       ),
-                    )
-                  ],
+                      Positioned(
+                        bottom: 0.0,
+                        right: 0.0,
+                        child: Row(
+                          children: <Widget>[
+                            Text(time,
+                                style: TextStyle(
+                                  color: Colors.black38,
+                                  fontSize: 8.0,
+                                )),
+                            SizedBox(width: 3.0),
+                            Icon(
+                              icon,
+                              size: 12.0,
+                              color: Colors.black38,
+                            )
+                          ],
+                        ),
+                      )
+                    ],
+                  ),
                 ),
-              ),
-            ],
-          );
+              ],
+            ),
+    );
+  }
+}
+
+class ImageScreen extends StatelessWidget {
+  final String message;
+  ImageScreen(this.message);
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Container(
+        width: MediaQuery.of(context).size.width,
+        height: MediaQuery.of(context).size.height,
+        child: Image.memory(
+          base64Decode(message),
+          fit: BoxFit.cover,
+        ),
+      ),
+    );
   }
 }

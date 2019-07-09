@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -157,6 +158,11 @@ class _SignupState extends State<Signup> with SingleTickerProviderStateMixin {
   }
 
   void performsignup() async {
+    String _deviceID;
+    FirebaseMessaging _message = FirebaseMessaging();
+    await _message.getToken().then((token) {
+      _deviceID = token;
+    });
     final DocumentReference documentReference =
         Firestore.instance.document("Users/${userData.uid}");
     List<String> error;
@@ -174,7 +180,8 @@ class _SignupState extends State<Signup> with SingleTickerProviderStateMixin {
             "username": "${userData.uid}",
             "email": "${userData.email}",
             "friends": [],
-            "groups": []
+            "groups": [],
+            "deviceId": _deviceID
           };
           documentReference.setData(userinfo).whenComplete(() {
             final snackbar1 = new SnackBar(

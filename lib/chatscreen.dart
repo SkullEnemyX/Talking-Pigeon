@@ -10,6 +10,7 @@ import 'package:talking_pigeon_x/sign-in.dart';
 import 'package:talking_pigeon_x/widget/animated_bottombar.dart';
 import 'package:unicorndial/unicorndial.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 
 var globalUsername;
 Color greet;
@@ -203,7 +204,7 @@ class _ChatScreenState extends State<ChatScreen> {
               padding: new EdgeInsets.symmetric(vertical: 20.0),
             ),
             Text(
-              "HCL ConnectX",
+              "Talking Pigeon",
               style: TextStyle(fontSize: 28.0, color: greet, wordSpacing: 5.0),
             )
           ],
@@ -260,7 +261,9 @@ class _ChatScreenState extends State<ChatScreen> {
                                 snapshot.data.length < 1) {
                               return Center(
                                 child: Text(
-                                  "Add new friends to start the conversation",
+                                  selection == 0
+                                      ? "Add new friends to start the conversation"
+                                      : "Make new group and add people",
                                   style: TextStyle(
                                     color: greet,
                                   ),
@@ -689,86 +692,88 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: showScreen(selectedBarIndex),
-      bottomNavigationBar: AnimatedBottomBar(
-        background: background,
-        onBarTap: (index) {
-          if (index == 2)
-            showSearch(context: context, delegate: UserSearch());
-          else
-            setState(() {
-              selectedBarIndex = index;
-            });
-        },
-        barItems: barItems,
-        animationDuration: const Duration(milliseconds: 150),
-        barStyle: BarStyle(fontSize: 15.0, iconSize: 30.0),
-      ),
-      floatingActionButton: UnicornDialer(
-        childButtons: childButtons,
-        backgroundColor: Colors.transparent,
-        parentButtonBackground: Color(0xFF27E9E1),
-        parentButton: Icon(Icons.add),
-        orientation: UnicornOrientation.VERTICAL,
-      ),
-      appBar: new AppBar(
-        backgroundColor: background,
-        centerTitle: true,
-        title: Text(
-          "Talking Pigeon",
-          style: TextStyle(
-            color: greet,
-            fontSize: 25.0,
-          ),
+    return MaterialApp(
+      home: Scaffold(
+        body: showScreen(selectedBarIndex),
+        bottomNavigationBar: AnimatedBottomBar(
+          background: background,
+          onBarTap: (index) {
+            if (index == 2)
+              showSearch(context: context, delegate: UserSearch());
+            else
+              setState(() {
+                selectedBarIndex = index;
+              });
+          },
+          barItems: barItems,
+          animationDuration: const Duration(milliseconds: 150),
+          barStyle: BarStyle(fontSize: 15.0, iconSize: 30.0),
         ),
-        leading: new PopupMenuButton<String>(
-          onSelected: menuList,
-          icon: new Icon(
-            Icons.menu,
-            color: Color(0xFF27E9E1),
-            size: 30.0,
-          ),
-          itemBuilder: (BuildContext context) => <PopupMenuItem<String>>[
-                PopupMenuItem<String>(
-                  value: 'a',
-                  child: ListTile(
-                    leading: Icon(Icons.edit),
-                    title: Text("$theme"),
-                  ),
-                ),
-                const PopupMenuItem<String>(
-                  value: 'b',
-                  child: ListTile(
-                    leading: Icon(Icons.cancel),
-                    title: Text("Sign Out"),
-                  ),
-                ),
-                const PopupMenuItem<String>(
-                  value: 'c',
-                  child: ListTile(
-                    leading: Icon(Icons.exit_to_app),
-                    title: Text("Exit"),
-                  ),
-                ),
-              ],
+        floatingActionButton: UnicornDialer(
+          childButtons: childButtons,
+          backgroundColor: Colors.transparent,
+          parentButtonBackground: Color(0xFF27E9E1),
+          parentButton: Icon(Icons.add),
+          orientation: UnicornOrientation.VERTICAL,
         ),
-        elevation: 0.0,
-        actions: <Widget>[
-          new IconButton(
+        appBar: new AppBar(
+          backgroundColor: background,
+          centerTitle: true,
+          title: Text(
+            "Talking Pigeon",
+            style: TextStyle(
+              color: greet,
+              fontSize: 25.0,
+            ),
+          ),
+          leading: new PopupMenuButton<String>(
+            onSelected: menuList,
             icon: new Icon(
-              Icons.search,
+              Icons.menu,
+              color: Color(0xFF27E9E1),
               size: 30.0,
             ),
-            onPressed: () {
-              showSearch(context: context, delegate: UserSearch());
-            },
-            color: Color(0xFF27E9E1),
+            itemBuilder: (BuildContext context) => <PopupMenuItem<String>>[
+                  PopupMenuItem<String>(
+                    value: 'a',
+                    child: ListTile(
+                      leading: Icon(Icons.edit),
+                      title: Text("$theme"),
+                    ),
+                  ),
+                  const PopupMenuItem<String>(
+                    value: 'b',
+                    child: ListTile(
+                      leading: Icon(Icons.cancel),
+                      title: Text("Sign Out"),
+                    ),
+                  ),
+                  const PopupMenuItem<String>(
+                    value: 'c',
+                    child: ListTile(
+                      leading: Icon(Icons.exit_to_app),
+                      title: Text("Exit"),
+                    ),
+                  ),
+                ],
           ),
-          Padding(
-            padding: EdgeInsets.only(right: 5.0),
-          ),
-        ],
+          elevation: 0.0,
+          actions: <Widget>[
+            new IconButton(
+              icon: new Icon(
+                Icons.search,
+                size: 30.0,
+              ),
+              onPressed: () {
+                showSearch(context: context, delegate: UserSearch());
+              },
+              color: Color(0xFF27E9E1),
+            ),
+            Padding(
+              padding: EdgeInsets.only(right: 5.0),
+            ),
+          ],
+        ),
       ),
     );
   }

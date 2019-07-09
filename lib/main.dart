@@ -2,58 +2,64 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:talking_pigeon_x/authentication.dart';
+import 'package:talking_pigeon_x/chatscreen.dart';
 import 'splashscreen.dart';
 
-void main() => runApp(new Talkingpigeon());
-
-class Talkingpigeon extends StatefulWidget {
-  @override
-  _TalkingpigeonState createState() => _TalkingpigeonState();
+void main() {
+  Talkingpigeon talkingpigeon = Talkingpigeon();
+  talkingpigeon.infoAvailable().then((val) {
+    if (val == "") {
+      runApp(SplashScreen());
+    } else {
+      runApp(ChatScreen(
+        username: val,
+      ));
+    }
+  });
 }
 
-class _TalkingpigeonState extends State<Talkingpigeon> {
-  bool credentialCorrectness = false;
-
-  String _username;
-
-  UserData userData = UserData();
-
-  Future infoAvailable() async {
+class Talkingpigeon extends StatelessWidget {
+  Future<String> infoAvailable() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     Userauthentication userAuth = Userauthentication();
-    String _uid;
+    String _username;
     _username = (prefs.getString('username') ?? '');
     String _password = (prefs.getString('password') ?? '');
     if (_username != '' && _password != '') {
-      await Firestore.instance
-          .document("Users/$_username")
-          .get()
-          .then((snapshot) {
-        if (snapshot.exists) {
-          userData.email = snapshot.data['email'];
-          userData.password = _password;
-          userData.uid = _username;
-        }
-      });
-      try {
-        _uid = await userAuth.verifyuser(userData);
-        if (_uid != null) {
-          setState(() {
-            credentialCorrectness = true;
-          });
-        }
-      } catch (e) {
-        throw e;
-      }
+      //Saving credentials like username and/or password only if previous signin/signup was successful.
+      return _username;
+      //   await Firestore.instance
+      //       .document("Users/$_username")
+      //       .get()
+      //       .then((snapshot) {
+      //     if (snapshot.exists) {
+      //       userData.email = snapshot.data['email'];
+      //       userData.password = _password;
+      //       userData.uid = _username;
+      //     }
+      //   });
+      //   try {
+      //     _uid = await userAuth.verifyuser(userData);
+      //     if (_uid != null) {
+      //       setState(() {
+      //         credentialCorrectness = true;
+      //       });
+      //     }
+      //   } catch (e) {
+      //     throw e;
+      //   }
+      // } else {
+      //   setState(() {
+      //     credentialCorrectness = false;
+      //   });
+      // }
     } else {
-      setState(() {
-        credentialCorrectness = false;
-      });
+      return "";
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return new SplashScreen();
+    return Container();
   }
 }
