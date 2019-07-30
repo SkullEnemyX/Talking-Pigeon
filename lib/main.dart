@@ -1,7 +1,5 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:talking_pigeon_x/authentication.dart';
 import 'package:talking_pigeon_x/chatscreen.dart';
 import 'splashscreen.dart';
 
@@ -11,7 +9,7 @@ void main() {
     if (val == "") {
       runApp(SplashScreen());
     } else {
-      runApp(ChatScreen(
+      runApp(ChatScreenBuildContext(
         username: val,
       ));
     }
@@ -21,7 +19,6 @@ void main() {
 class Talkingpigeon extends StatelessWidget {
   Future<String> infoAvailable() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    Userauthentication userAuth = Userauthentication();
     String _username;
     _username = (prefs.getString('username') ?? '');
     String _password = (prefs.getString('password') ?? '');
@@ -61,5 +58,18 @@ class Talkingpigeon extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container();
+  }
+}
+
+class ChatScreenBuildContext extends StatelessWidget {
+  final String username;
+  ChatScreenBuildContext({this.username});
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      home: ChatScreen(
+        username: username,
+      ),
+    );
   }
 }

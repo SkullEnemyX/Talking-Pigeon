@@ -1,10 +1,6 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'dart:async';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
-import 'package:talking_pigeon_x/authentication.dart';
-import 'package:talking_pigeon_x/chatscreen.dart';
 import 'package:talking_pigeon_x/sign-in.dart';
 
 class SplashScreen extends StatefulWidget {

@@ -432,8 +432,14 @@ class _SigninState extends State<Signin> with SingleTickerProviderStateMixin {
     });
     try {
       _uid = await userAuth.verifyuser(userData);
+      String _deviceID;
+      FirebaseMessaging _message = FirebaseMessaging();
+      await _message.getToken().then((token) {
+        _deviceID = token;
+      });
       if (_uid != null) {
         saveUserInfo(userData.uid, userData.password);
+        documentReference.updateData({"deviceId": _deviceID});
         Scaffold.of(context).showSnackBar(snackbar1);
         Timer(
             Duration(milliseconds: 400),

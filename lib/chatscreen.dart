@@ -10,7 +10,6 @@ import 'package:talking_pigeon_x/sign-in.dart';
 import 'package:talking_pigeon_x/widget/animated_bottombar.dart';
 import 'package:unicorndial/unicorndial.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
 
 var globalUsername;
 Color greet;
@@ -353,8 +352,15 @@ class _ChatScreenState extends State<ChatScreen> {
                                                       lastMessage = snap.data
                                                               .documents.isEmpty
                                                           ? ""
-                                                          : document[0]
-                                                              ["content"];
+                                                          : document[0][
+                                                                      "content"]
+                                                                  .toString()
+                                                                  .contains(
+                                                                      "https://i.ibb.co/")
+                                                              ? "📷 Photo"
+                                                              : document[0][
+                                                                      "content"]
+                                                                  .toString();
                                                       return ListTile(
                                                         trailing:
                                                             snap.data.documents
@@ -734,28 +740,28 @@ class _ChatScreenState extends State<ChatScreen> {
               size: 30.0,
             ),
             itemBuilder: (BuildContext context) => <PopupMenuItem<String>>[
-                  PopupMenuItem<String>(
-                    value: 'a',
-                    child: ListTile(
-                      leading: Icon(Icons.edit),
-                      title: Text("$theme"),
-                    ),
-                  ),
-                  const PopupMenuItem<String>(
-                    value: 'b',
-                    child: ListTile(
-                      leading: Icon(Icons.cancel),
-                      title: Text("Sign Out"),
-                    ),
-                  ),
-                  const PopupMenuItem<String>(
-                    value: 'c',
-                    child: ListTile(
-                      leading: Icon(Icons.exit_to_app),
-                      title: Text("Exit"),
-                    ),
-                  ),
-                ],
+              PopupMenuItem<String>(
+                value: 'a',
+                child: ListTile(
+                  leading: Icon(Icons.edit),
+                  title: Text("$theme"),
+                ),
+              ),
+              const PopupMenuItem<String>(
+                value: 'b',
+                child: ListTile(
+                  leading: Icon(Icons.cancel),
+                  title: Text("Sign Out"),
+                ),
+              ),
+              const PopupMenuItem<String>(
+                value: 'c',
+                child: ListTile(
+                  leading: Icon(Icons.exit_to_app),
+                  title: Text("Exit"),
+                ),
+              ),
+            ],
           ),
           elevation: 0.0,
           actions: <Widget>[
@@ -964,37 +970,37 @@ class UserSearch extends SearchDelegate<String> {
               if (snapshot.connectionState == ConnectionState.done)
                 return ListView.builder(
                   itemBuilder: (context, index) => InkWell(
-                        splashColor: Color(0xFF27E9E1),
-                        onTap: () {
-                          Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (context) => ChatPage(
-                                        name: globalUsername,
-                                        greet: greet,
-                                        background: background,
-                                        frienduid: snapshot.data[index],
-                                      )));
-                        },
-                        child: Container(
-                          child: Column(
-                            children: <Widget>[
-                              ListTile(
-                                leading: Icon(Icons.person),
-                                title: Text(snapshot.data[index]),
-                              ),
-                              Padding(
-                                padding: EdgeInsets.only(top: 2.0),
-                              ),
-                              Divider(
-                                color: Colors.grey,
-                                height: 2.0,
-                                indent: 70.0,
-                              )
-                            ],
+                    splashColor: Color(0xFF27E9E1),
+                    onTap: () {
+                      Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => ChatPage(
+                                    name: globalUsername,
+                                    greet: greet,
+                                    background: background,
+                                    frienduid: snapshot.data[index],
+                                  )));
+                    },
+                    child: Container(
+                      child: Column(
+                        children: <Widget>[
+                          ListTile(
+                            leading: Icon(Icons.person),
+                            title: Text(snapshot.data[index]),
                           ),
-                        ),
+                          Padding(
+                            padding: EdgeInsets.only(top: 2.0),
+                          ),
+                          Divider(
+                            color: Colors.grey,
+                            height: 2.0,
+                            indent: 70.0,
+                          )
+                        ],
                       ),
+                    ),
+                  ),
                   itemCount: snapshot.data?.length ?? 0,
                 );
               else {
