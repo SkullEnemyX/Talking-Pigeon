@@ -10,6 +10,9 @@ Following are the screenshots for the app itself, have a look:
 
 ![1](https://user-images.githubusercontent.com/36532034/54944865-7a5bd380-4f5a-11e9-9396-3f1a426bf336.jpg)
 
+### Download link for the apk: https://gofile.io/?c=8TSB57
+P.S.: This application is still in developement stage and infinite bugs are expected, if you found one or have a suggestion, do make sure to notify me by either raising an issue, pull request or by sending a personal email. All suggestions are welcome.
+
  This application will have its own unique style of communication between individuals by applying new, novel method of storage and processing of the message threads which will make concurrency and synchronization dependent processing efficient. Talking pigeon aims to be a meritorious application by keeping in mind the UI and UX challenges that every app faces and no compensation has been instilled in this aspect of application building. 
  
  
