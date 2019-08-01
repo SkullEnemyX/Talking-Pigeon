@@ -23,6 +23,13 @@ Following are the screenshots for the app itself, have a look:
 
 Security element was built within user registration, user login, and message exchange and database storage. Possible future works that need to be highlighted includes an update of security tools to the latest version, a variable file size for the purpose of file transfer and incorporating functionalities like voice communication or live chatting. Although the application was built to find friends by knowing their usernames explicitly, we hope to include an overall search option for users to find people with enhanced profiles and make friends. We also hope to implement the peer-to-peer network architecture to make the application decentralized and introduce groups in the application. In making the application more secure, we should also offer different authentication and encryption algorithms to be chosen by users. Whenever possible, key size should be allowed to be negotiated manually by the users. With large migration from PC based to mobile based application, we could also use phone number for device identity as that found in Whatapp application. 
 
+## Steps to clone and use the repository
+
+Configure firebase for android app by refering to any videos or tutorials out there and download the google-services.json file. 
+Copy this file into android/app folder.
+Then, change the name of the app in the build.gradle file found in the android/app folder or while configuring the firebase , add the app name as "FrozenSkull.talking_pigeon". 
+Then let your ide download the necessary packages and run the application on your device. I would soon be publishing an apk for this application. Hope it gets your love.
+
 ## Getting Started
 
 For help getting started with Flutter, view online
