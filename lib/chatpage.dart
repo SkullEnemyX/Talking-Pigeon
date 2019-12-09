@@ -93,6 +93,7 @@ class _ChatPageState extends State<ChatPage> {
           elevation: 0.0,
           backgroundColor: widget.background,
           centerTitle: true,
+          primary: true,
           title: new Text(
             "${widget.frienduid}"
                 .toString()
@@ -108,6 +109,18 @@ class _ChatPageState extends State<ChatPage> {
               Navigator.pop(context);
             },
           ),
+          actions: <Widget>[
+            IconButton(
+              icon: Icon(Icons.videocam),
+              color: widget.greet,
+              onPressed: () {},
+            ),
+            IconButton(
+              icon: Icon(Icons.call),
+              onPressed: () {},
+              color: widget.greet,
+            ),
+          ],
         ),
         body: new Container(
           color: widget.background,
@@ -149,9 +162,10 @@ class _ChatPageState extends State<ChatPage> {
                                       onTap: () {
                                         Navigator.of(context).push(
                                             MaterialPageRoute(
-                                                builder: (context) =>
-                                                    ImageScreen(
-                                                        listMsg[i][0])));
+                                                builder: (BuildContext ctx) =>
+                                                    ImageScreen(listMsg[i][0],
+                                                        background: widget
+                                                            .background)));
                                       },
                                       child: Bubble(
                                         message: listMsg[i][0],
@@ -160,6 +174,7 @@ class _ChatPageState extends State<ChatPage> {
                                         time: readTimestamp(
                                             int.parse(listMsg[i][2])),
                                         methodVia: 0,
+                                        background: widget.background,
                                         type: listMsg[i][3] == true ? 1 : 0,
                                       ),
                                     ),
@@ -259,7 +274,8 @@ class _ChatPageState extends State<ChatPage> {
   void sendMessage(String content, int type) async {
     //message type = 0; image type = 1;
     int timeStamp = DateTime.now().millisecondsSinceEpoch;
-    textEditingController.clear();
+    WidgetsBinding.instance
+        .addPostFrameCallback((_) => textEditingController.clear());
     String imageUrl;
     var url;
     var documentReference = Firestore.instance
@@ -327,12 +343,14 @@ class Bubble extends StatelessWidget {
       this.delivered,
       this.time,
       this.type = 0,
+      this.background,
       this.methodVia = 0});
   final bool delivered;
   final bool notMe;
   final String message;
   final String time;
   final int type;
+  final Color background;
   //This describes whether the message sent is an image or a text.
   final int methodVia; //For personal chat: 0, for group chat: 1
 
@@ -357,71 +375,95 @@ class Bubble extends StatelessWidget {
         ? Column(
             crossAxisAlignment: align,
             children: <Widget>[
-              Container(
-                margin: const EdgeInsets.all(10.0),
-                decoration: BoxDecoration(
-                    border: Border.all(
-                        color: notMe ? Colors.white : Color(0xFF242424),
-                        width: 5.0)),
-                width: width - 20,
-                height: width - 50,
-                child: Image.network(
-                  message,
-                  fit: BoxFit.cover,
-                ),
+              Image.network(
+                message,
+                loadingBuilder: (BuildContext context, Widget child,
+                    ImageChunkEvent loadingProgress) {
+                  if (loadingProgress == null) {
+                    return Container(
+                      margin: const EdgeInsets.all(10.0),
+                      child: child,
+                      decoration: BoxDecoration(
+                          border: Border.all(
+                              color: background == Color(0XFF242424)
+                                  ? Colors.white
+                                  : Color(0xFF242424),
+                              width: 5.0)),
+                      width: width - 20,
+                      height: width - 50,
+                    );
+                  }
+                  return Container(
+                    margin: const EdgeInsets.all(10.0),
+                    decoration: BoxDecoration(
+                        border: Border.all(
+                            color: background == Color(0XFF242424)
+                                ? Colors.white
+                                : Color(0xFF242424),
+                            width: 5.0)),
+                    width: width - 20,
+                    height: width - 50,
+                    child: Center(
+                      child: CircularProgressIndicator(
+                        value: loadingProgress.expectedTotalBytes != null
+                            ? loadingProgress.cumulativeBytesLoaded /
+                                loadingProgress.expectedTotalBytes
+                            : null,
+                        valueColor: new AlwaysStoppedAnimation<Color>(
+                            Color(0xFF27E9E1).withOpacity(0.7)),
+                      ),
+                    ),
+                  );
+                },
+                fit: BoxFit.cover,
               ),
             ],
           )
         : Column(
             crossAxisAlignment: align,
             children: <Widget>[
-              sending == 1
-                  ? Container(
-                      child: Text("Uploading image, please wait .."),
-                    )
-                  : Container(
-                      margin: const EdgeInsets.all(10.0),
-                      padding: const EdgeInsets.all(8.0),
-                      constraints:
-                          BoxConstraints(maxWidth: width, minWidth: 120.0),
-                      decoration: BoxDecoration(
-                        boxShadow: [
-                          BoxShadow(
-                              blurRadius: .5,
-                              spreadRadius: 1.0,
-                              color: Colors.black.withOpacity(.12))
-                        ],
-                        color: bg,
-                        borderRadius: radius,
-                      ),
-                      child: Stack(
+              Container(
+                margin: const EdgeInsets.all(10.0),
+                padding: const EdgeInsets.all(8.0),
+                constraints: BoxConstraints(maxWidth: width, minWidth: 120.0),
+                decoration: BoxDecoration(
+                  boxShadow: [
+                    BoxShadow(
+                        blurRadius: .5,
+                        spreadRadius: 1.0,
+                        color: Colors.black.withOpacity(.12))
+                  ],
+                  color: bg,
+                  borderRadius: radius,
+                ),
+                child: Stack(
+                  children: <Widget>[
+                    Padding(
+                      padding: EdgeInsets.only(right: 48.0, bottom: 12.0),
+                      child: Text(message),
+                    ),
+                    Positioned(
+                      bottom: 0.0,
+                      right: 0.0,
+                      child: Row(
                         children: <Widget>[
-                          Padding(
-                            padding: EdgeInsets.only(right: 48.0, bottom: 12.0),
-                            child: Text(message),
-                          ),
-                          Positioned(
-                            bottom: 0.0,
-                            right: 0.0,
-                            child: Row(
-                              children: <Widget>[
-                                Text(time,
-                                    style: TextStyle(
-                                      color: Colors.black38,
-                                      fontSize: 8.0,
-                                    )),
-                                SizedBox(width: 3.0),
-                                Icon(
-                                  icon,
-                                  size: 12.0,
-                                  color: Colors.black38,
-                                )
-                              ],
-                            ),
+                          Text(time,
+                              style: TextStyle(
+                                color: Colors.black38,
+                                fontSize: 8.0,
+                              )),
+                          SizedBox(width: 3.0),
+                          Icon(
+                            icon,
+                            size: 12.0,
+                            color: Colors.black38,
                           )
                         ],
                       ),
-                    ),
+                    )
+                  ],
+                ),
+              ),
             ],
           );
   }
@@ -429,7 +471,8 @@ class Bubble extends StatelessWidget {
 
 class ImageScreen extends StatefulWidget {
   final String message;
-  ImageScreen(this.message);
+  final Color background;
+  ImageScreen(this.message, {this.background = Colors.white});
 
   @override
   _ImageScreenState createState() => _ImageScreenState();
@@ -438,13 +481,15 @@ class ImageScreen extends StatefulWidget {
 class _ImageScreenState extends State<ImageScreen> {
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Container(
-        width: MediaQuery.of(context).size.width,
-        height: MediaQuery.of(context).size.height,
-        child: Image.network(
-          widget.message,
-          fit: BoxFit.contain,
+    return MaterialApp(
+      home: Scaffold(
+        body: Container(
+          width: MediaQuery.of(context).size.width,
+          height: MediaQuery.of(context).size.height,
+          child: Image.network(
+            widget.message,
+            fit: BoxFit.contain,
+          ),
         ),
       ),
     );

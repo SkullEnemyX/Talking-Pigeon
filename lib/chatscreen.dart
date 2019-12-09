@@ -141,6 +141,29 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
+  String customTimestamp(int timestamp) {
+    var now = new DateTime.now();
+    var format = new DateFormat('HH:mm a');
+    var date = new DateTime.fromMicrosecondsSinceEpoch(timestamp * 1000);
+    var diff = now.difference(date);
+    var time = '';
+
+    if (diff.inSeconds <= 0 ||
+        diff.inSeconds > 0 && diff.inMinutes == 0 ||
+        diff.inMinutes > 0 && diff.inHours == 0 ||
+        diff.inHours > 0 && diff.inDays == 0) {
+      time = format.format(date);
+    } else if (diff.inDays > 0 && diff.inDays < 7) {
+      if (diff.inDays == 1) {
+        time = 'Yesterday';
+      } else {
+        format = DateFormat("d/M/y");
+        time = format.format(date);
+      }
+    }
+    return time;
+  }
+
   String readTimestamp(int timestamp) {
     var now = new DateTime.now();
     var format = new DateFormat('HH:mm a');
@@ -351,32 +374,47 @@ class _ChatScreenState extends State<ChatScreen> {
                                                           snap.data.documents;
                                                       lastMessage = snap.data
                                                               .documents.isEmpty
-                                                          ? ""
-                                                          : document[0][
-                                                                      "content"]
+                                                          ? "(No new messages)"
+                                                          : document[0]["content"]
                                                                   .toString()
                                                                   .contains(
                                                                       "https://i.ibb.co/")
                                                               ? "📷 Photo"
-                                                              : document[0][
-                                                                      "content"]
-                                                                  .toString();
+                                                              : document[0]["content"]
+                                                                          .toString()
+                                                                          .split(
+                                                                              " ")
+                                                                          .length <
+                                                                      8
+                                                                  ? document[0][
+                                                                          "content"]
+                                                                      .toString()
+                                                                  : document[0]["content"]
+                                                                          .toString()
+                                                                          .split(
+                                                                              " ")
+                                                                          .sublist(
+                                                                              0, 8)
+                                                                          .join(" ") +
+                                                                      "...";
                                                       return ListTile(
-                                                        trailing:
-                                                            snap.data.documents
-                                                                    .isEmpty
-                                                                ? Text(" ")
-                                                                : Text(
-                                                                    readTimestamp(int.parse(
-                                                                        document[0]
+                                                        trailing: snap
+                                                                .data
+                                                                .documents
+                                                                .isEmpty
+                                                            ? Text(" ")
+                                                            : Text(
+                                                                customTimestamp(
+                                                                    int.parse(document[0]
                                                                             [
-                                                                            "timestamp"])),
-                                                                    style: TextStyle(
-                                                                        color:
-                                                                            greet,
-                                                                        fontSize:
-                                                                            12.0),
-                                                                  ),
+                                                                            "timestamp"]
+                                                                        .toString())),
+                                                                style: TextStyle(
+                                                                    color:
+                                                                        greet,
+                                                                    fontSize:
+                                                                        13.0),
+                                                              ),
                                                         leading: Container(
                                                           decoration:
                                                               BoxDecoration(

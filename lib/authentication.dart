@@ -10,26 +10,24 @@ class UserData {
   UserData({this.displayName, this.email, this.uid, this.password});
 }
 
-class Userauthentication
-{
+class Userauthentication {
   String message = "Account created successfully";
-  Future<String> createUser(UserData userdata) async{
-    FirebaseUser _auth = await FirebaseAuth.instance.createUserWithEmailAndPassword(
-      email: userdata.email,password: userdata.password,
-    );
-    return "${_auth.uid}";
-  }
-  
-  Future<String> verifyuser(UserData userdata) async
-  {
-    FirebaseUser _auth = await FirebaseAuth.instance.signInWithEmailAndPassword(
-      email: userdata.email,password: userdata.password
+  Future<String> createUser(UserData userdata) async {
+    FirebaseUser _auth =
+        await FirebaseAuth.instance.createUserWithEmailAndPassword(
+      email: userdata.email,
+      password: userdata.password,
     );
     return "${_auth.uid}";
   }
 
-   logout(UserData userdata) async
-  {
+  Future<String> verifyuser(UserData userdata) async {
+    FirebaseUser _auth = await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: userdata.email, password: userdata.password);
+    return "${_auth.uid}";
+  }
+
+  logout(UserData userdata) async {
     FirebaseAuth.instance.signOut();
   }
 }
