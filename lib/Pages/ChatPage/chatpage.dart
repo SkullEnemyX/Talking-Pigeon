@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -58,11 +59,6 @@ class _ChatPageState extends State<ChatPage> {
         _messaging.getToken().then((token) {});
       }
     });
-  }
-
-  messageList(String msg, bool notme, String timestamp) {
-    listMsg.add([msg, notme, timestamp]);
-    return listMsg;
   }
 
   String returnGroupId(String myid, String friendid) {
@@ -162,15 +158,38 @@ class _ChatPageState extends State<ChatPage> {
               padding: EdgeInsets.all(10.0),
               child: Row(
                 children: <Widget>[
-                  FloatingActionButton(
-                    backgroundColor: Colors.white,
-                    mini: true,
-                    child: Icon(
-                      Icons.image,
-                      color: Colors.black,
+                  Container(
+                    height: 45.0,
+                    decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(50.0)),
+                    child: Row(
+                      children: <Widget>[
+                        IconButton(
+                          onPressed: () => sendMessage(
+                              textEditingController.value.text,
+                              1,
+                              ImageSource.gallery),
+                          icon: Icon(
+                            Icons.image,
+                            color: Colors.black,
+                          ),
+                        ),
+                        IconButton(
+                          onPressed: () => sendMessage(
+                              textEditingController.value.text,
+                              1,
+                              ImageSource.camera),
+                          icon: Icon(
+                            Icons.camera,
+                            color: Colors.black,
+                          ),
+                        ),
+                      ],
                     ),
-                    onPressed: () =>
-                        sendMessage(textEditingController.value.text, 1),
+                  ),
+                  SizedBox(
+                    width: 5.0,
                   ),
                   Expanded(
                     child: Container(
@@ -200,7 +219,9 @@ class _ChatPageState extends State<ChatPage> {
                               onPressed: () =>
                                   textEditingController.value.text != ""
                                       ? sendMessage(
-                                          textEditingController.value.text, 0)
+                                          textEditingController.value.text,
+                                          0,
+                                          ImageSource.gallery)
                                       : null,
                             )),
                         controller: textEditingController,
@@ -234,7 +255,7 @@ class _ChatPageState extends State<ChatPage> {
     return time;
   }
 
-  void sendMessage(String content, int type) async {
+  void sendMessage(String content, int type, ImageSource source) async {
     //message type = 0; image type = 1;
     //Camera option: 0; gallery option: 1
     int timeStamp = DateTime.now().millisecondsSinceEpoch;
@@ -243,7 +264,7 @@ class _ChatPageState extends State<ChatPage> {
     String imageUrl;
     var url;
     if (type == 1) {
-      File _image = await ImagePicker.pickImage(source: ImageSource.gallery);
+      File _image = await ImagePicker.pickImage(source: source, maxWidth: 720);
       List<int> imageBytes = _image.readAsBytesSync();
       imageUrl = base64Encode(imageBytes);
       // print(imageUrl); Very bad algortihm, try not to use.
@@ -265,7 +286,6 @@ class _ChatPageState extends State<ChatPage> {
     } else if (type == 0) {
       print(content);
       setState(() {
-        messageList(content, false, readTimestamp(timeStamp));
         listScrollController.animateTo(0.0,
             duration: Duration(milliseconds: 300), curve: Curves.elasticIn);
         //Refreshing widget when new message is sent or appears.
@@ -340,46 +360,60 @@ class Bubble extends StatelessWidget {
                     builder: (context) => ImageScreen(message))),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(20.0),
-                  child: Image.network(
-                    message,
-                    loadingBuilder: (BuildContext context, Widget child,
-                        ImageChunkEvent loadingProgress) {
-                      if (loadingProgress == null) {
-                        return Container(
-                          margin: const EdgeInsets.all(10.0),
-                          child: Card(
-                            clipBehavior: Clip.antiAlias,
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(20.0)),
-                            child: child,
-                          ),
-                          width: width - 20,
-                          height: width - 50,
-                        );
-                      }
-                      return Container(
-                        margin: const EdgeInsets.all(10.0),
-                        width: width - 20,
-                        height: width - 50,
-                        child: Card(
-                          clipBehavior: Clip.antiAlias,
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(20.0)),
-                          child: Center(
-                            child: CircularProgressIndicator(
-                              value: loadingProgress.expectedTotalBytes != null
-                                  ? loadingProgress.cumulativeBytesLoaded /
-                                      loadingProgress.expectedTotalBytes
-                                  : null,
-                              valueColor: new AlwaysStoppedAnimation<Color>(
-                                  Colors.teal),
-                            ),
-                          ),
-                        ),
-                      );
-                    },
-                    fit: BoxFit.cover,
+                  child: Container(
+                    margin: const EdgeInsets.all(10.0),
+                    child: Card(
+                      clipBehavior: Clip.antiAlias,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20.0)),
+                      child: CachedNetworkImage(
+                        imageUrl: message,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                    width: width - 20,
+                    height: width - 50,
                   ),
+                  // child: Image.network(
+                  //   message,
+                  //   loadingBuilder: (BuildContext context, Widget child,
+                  //       ImageChunkEvent loadingProgress) {
+                  //     if (loadingProgress == null) {
+                  //       return Container(
+                  //         margin: const EdgeInsets.all(10.0),
+                  //         child: Card(
+                  //           clipBehavior: Clip.antiAlias,
+                  //           shape: RoundedRectangleBorder(
+                  //               borderRadius: BorderRadius.circular(20.0)),
+                  //           child: child,
+                  //         ),
+                  //         width: width - 20,
+                  //         height: width - 50,
+                  //       );
+                  //     }
+                  //     return Container(
+                  //       margin: const EdgeInsets.all(10.0),
+                  //       width: width - 20,
+                  //       height: width - 50,
+                  //       child: Card(
+                  //         clipBehavior: Clip.antiAlias,
+                  //         shape: RoundedRectangleBorder(
+                  //             borderRadius: BorderRadius.circular(20.0)),
+                  //         child: Center(
+                  //           child: CircularProgressIndicator(
+                  //             value: loadingProgress.expectedTotalBytes != null
+                  //                 ? loadingProgress.cumulativeBytesLoaded /
+                  //                     loadingProgress.expectedTotalBytes
+                  //                 : null,
+                  //             valueColor: new AlwaysStoppedAnimation<Color>(
+                  //                 Colors.teal),
+                  //           ),
+                  //         ),
+                  //       ),
+                  //     );
+                  //   },
+                  //   fit: BoxFit.cover,
+                  // ),
                 ),
               ),
             ],
@@ -388,7 +422,7 @@ class Bubble extends StatelessWidget {
             crossAxisAlignment: align,
             children: <Widget>[
               Container(
-                margin: const EdgeInsets.all(10.0),
+                margin: const EdgeInsets.all(5.0),
                 padding: const EdgeInsets.all(8.0),
                 constraints: BoxConstraints(maxWidth: width, minWidth: 120.0),
                 decoration: BoxDecoration(
@@ -453,7 +487,7 @@ class _ImageScreenState extends State<ImageScreen> {
     return Scaffold(
       body: Container(
         child: PhotoView(
-          imageProvider: NetworkImage(widget.message),
+          imageProvider: CachedNetworkImageProvider(widget.message),
           minScale: PhotoViewComputedScale.contained,
         ),
       ),

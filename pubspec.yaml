@@ -20,7 +20,7 @@ dependencies:
   unicorndial:
   http:
   image_picker:
-  cached_network_image:
+  cached_network_image: ^2.0.0
   photo_view:
 
 dev_dependencies:
