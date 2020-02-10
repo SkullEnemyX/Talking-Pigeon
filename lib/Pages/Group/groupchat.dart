@@ -2,7 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:intl/intl.dart';
-import 'package:talking_pigeon_x/chatpage.dart';
+import 'package:talking_pigeon_x/Pages/ChatPage/chatpage.dart';
 
 class GroupChat extends StatefulWidget {
   final String groupName;
@@ -400,6 +400,101 @@ class AddMembers extends SearchDelegate<String> {
           else
             return ListView.builder(
               itemBuilder: (context, index) => InkWell(
+                splashColor: Color(0xFF27E9E1),
+                onTap: () async {
+                  //Adding people to each other's friendlist if one selects the name of the user.
+                  Navigator.of(context).pop();
+                  await saveGroupInfo(snapshot.data[index]);
+                },
+                child: Container(
+                  child: Column(
+                    children: <Widget>[
+                      ListTile(
+                        leading: Icon(Icons.person),
+                        title: Text(snapshot.data[index]),
+                      ),
+                      Padding(
+                        padding: EdgeInsets.only(top: 2.0),
+                      ),
+                      Divider(
+                        color: Colors.grey,
+                        height: 2.0,
+                        indent: 70.0,
+                      )
+                    ],
+                  ),
+                ),
+              ),
+              itemCount: snapshot.data?.length ?? 0,
+            );
+          else {
+            return Center(
+                child: SpinKitDoubleBounce(
+              size: 60.0,
+              color: Color(0xFF27E9E1),
+            ));
+          }
+        });
+  }
+
+  @override
+  Widget buildSuggestions(BuildContext context) {
+    // presentList = query.isEmpty?friendSuggestion:userList.where((word)=>word.startsWith(query)).toList();
+
+    return query.isEmpty
+        ? FutureBuilder(
+            future: testfunc(),
+            builder: (BuildContext context, AsyncSnapshot snapshot) {
+              if (snapshot.connectionState == ConnectionState.done)
+                return ListView.builder(
+                  itemBuilder: (context, index) => InkWell(
+                    splashColor: Color(0xFF27E9E1),
+                    onTap: () {
+                      Navigator.of(context).pop();
+                      saveGroupInfo(snapshot.data[index]);
+                    },
+                    child: Container(
+                      child: Column(
+                        children: <Widget>[
+                          ListTile(
+                            leading: Icon(Icons.person),
+                            title: Text(snapshot.data[index]),
+                          ),
+                          Padding(
+                            padding: EdgeInsets.only(top: 2.0),
+                          ),
+                          Divider(
+                            color: Colors.grey,
+                            height: 2.0,
+                            indent: 70.0,
+                          )
+                        ],
+                      ),
+                    ),
+                  ),
+                  itemCount: snapshot.data?.length ?? 0,
+                );
+              else {
+                return Center(
+                    child: SpinKitDoubleBounce(
+                  size: 60.0,
+                  color: Color(0xFF27E9E1),
+                ));
+              }
+            })
+        : FutureBuilder(
+            future: checkpart2(query),
+            builder: (BuildContext context, AsyncSnapshot snapshot) {
+              if (snapshot.connectionState ==
+                  ConnectionState.done) if (snapshot.data.length < 1)
+                return Container(
+                  child: Center(
+                    child: Text("No user found"),
+                  ),
+                );
+              else
+                return ListView.builder(
+                  itemBuilder: (context, index) => InkWell(
                     splashColor: Color(0xFF27E9E1),
                     onTap: () async {
                       //Adding people to each other's friendlist if one selects the name of the user.
@@ -425,101 +520,6 @@ class AddMembers extends SearchDelegate<String> {
                       ),
                     ),
                   ),
-              itemCount: snapshot.data?.length ?? 0,
-            );
-          else {
-            return Center(
-                child: SpinKitDoubleBounce(
-              size: 60.0,
-              color: Color(0xFF27E9E1),
-            ));
-          }
-        });
-  }
-
-  @override
-  Widget buildSuggestions(BuildContext context) {
-    // presentList = query.isEmpty?friendSuggestion:userList.where((word)=>word.startsWith(query)).toList();
-
-    return query.isEmpty
-        ? FutureBuilder(
-            future: testfunc(),
-            builder: (BuildContext context, AsyncSnapshot snapshot) {
-              if (snapshot.connectionState == ConnectionState.done)
-                return ListView.builder(
-                  itemBuilder: (context, index) => InkWell(
-                        splashColor: Color(0xFF27E9E1),
-                        onTap: () {
-                          Navigator.of(context).pop();
-                          saveGroupInfo(snapshot.data[index]);
-                        },
-                        child: Container(
-                          child: Column(
-                            children: <Widget>[
-                              ListTile(
-                                leading: Icon(Icons.person),
-                                title: Text(snapshot.data[index]),
-                              ),
-                              Padding(
-                                padding: EdgeInsets.only(top: 2.0),
-                              ),
-                              Divider(
-                                color: Colors.grey,
-                                height: 2.0,
-                                indent: 70.0,
-                              )
-                            ],
-                          ),
-                        ),
-                      ),
-                  itemCount: snapshot.data?.length ?? 0,
-                );
-              else {
-                return Center(
-                    child: SpinKitDoubleBounce(
-                  size: 60.0,
-                  color: Color(0xFF27E9E1),
-                ));
-              }
-            })
-        : FutureBuilder(
-            future: checkpart2(query),
-            builder: (BuildContext context, AsyncSnapshot snapshot) {
-              if (snapshot.connectionState ==
-                  ConnectionState.done) if (snapshot.data.length < 1)
-                return Container(
-                  child: Center(
-                    child: Text("No user found"),
-                  ),
-                );
-              else
-                return ListView.builder(
-                  itemBuilder: (context, index) => InkWell(
-                        splashColor: Color(0xFF27E9E1),
-                        onTap: () async {
-                          //Adding people to each other's friendlist if one selects the name of the user.
-                          Navigator.of(context).pop();
-                          await saveGroupInfo(snapshot.data[index]);
-                        },
-                        child: Container(
-                          child: Column(
-                            children: <Widget>[
-                              ListTile(
-                                leading: Icon(Icons.person),
-                                title: Text(snapshot.data[index]),
-                              ),
-                              Padding(
-                                padding: EdgeInsets.only(top: 2.0),
-                              ),
-                              Divider(
-                                color: Colors.grey,
-                                height: 2.0,
-                                indent: 70.0,
-                              )
-                            ],
-                          ),
-                        ),
-                      ),
                   itemCount: snapshot.data?.length ?? 0,
                 );
               else {

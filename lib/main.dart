@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:talking_pigeon_x/chatscreen.dart';
-import 'splashscreen.dart';
+import 'package:talking_pigeon_x/Pages/HomeScreen/chatscreen.dart';
+import 'package:talking_pigeon_x/Pages/SplashScreen/splashscreen.dart';
 
 Future<Null> main() async {
   WidgetsFlutterBinding.ensureInitialized();

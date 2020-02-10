@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
-import 'package:talking_pigeon_x/sign-in.dart';
+import 'package:talking_pigeon_x/Pages/Authentication/sign-in.dart';
 
 class SplashScreen extends StatefulWidget {
   @override

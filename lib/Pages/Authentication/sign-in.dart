@@ -3,7 +3,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:talking_pigeon_x/chatscreen.dart';
+import 'package:talking_pigeon_x/Pages/HomeScreen/chatscreen.dart';
 import 'authentication.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -39,7 +39,7 @@ class _LoginScreenState extends State<LoginScreen>
           appBar: new AppBar(
             bottomOpacity: 0.7,
             title: new Text(
-              "The Talking Pigeon",
+              "Talking Pigeon",
               style: TextStyle(
                 fontSize: 25.0,
                 color: Colors.white.withOpacity(0.8),
@@ -100,8 +100,8 @@ class _SignupState extends State<Signup> with SingleTickerProviderStateMixin {
     _loginButtonController = new AnimationController(
         duration: new Duration(milliseconds: 3000), vsync: this);
     buttonSqueezeAnimation = new Tween(
-      begin: 60.0,
-      end: 20.0,
+      begin: 150.0,
+      end: 100.0,
     ).animate(new CurvedAnimation(
         parent: _loginButtonController, curve: new Interval(0.0, 0.250)));
   }
@@ -112,7 +112,15 @@ class _SignupState extends State<Signup> with SingleTickerProviderStateMixin {
     super.dispose();
   }
 
+  Future<Null> _playAnimation() async {
+    try {
+      await _loginButtonController.forward();
+      await _loginButtonController.reverse();
+    } on TickerCanceled {}
+  }
+
   Future<void> saveUserInfo(String username, String password) async {
+    //Saving user's personal information on the device.
     SharedPreferences prefs = await SharedPreferences.getInstance();
     prefs.setString('username', username);
     prefs.setString('password', password);
@@ -128,44 +136,36 @@ class _SignupState extends State<Signup> with SingleTickerProviderStateMixin {
   }
 
   Future<int> addUserToPeopleDB() async {
-    int ifExist = 1;
-    //Checking condition whether the username exists already, firebase automatically checks whether the email is already used.
-    DocumentReference peopleDocument =
-        Firestore.instance.document("People/People");
-    await peopleDocument.get().then((snapshot) {
-      ifExist = snapshot.data.values.toList()[0].contains(userData.uid) ? 1 : 0;
-      if (ifExist == 1) {
-        final snackbar1 = new SnackBar(
-          content: Text(
-              "Username: ${userData.uid} already exists, please choose another one."),
-        );
-        Scaffold.of(context).showSnackBar(snackbar1);
-      } else {
-        //Code written below enters the users info into the People's database which consists of the list of user Talking Pigeon has.
-        var people = snapshot.data["People"].toList();
-        people.add(
-            "${userData.uid}"); //Add here what new content wants to be added.
-        Map<String, dynamic> peopledata = <String, dynamic>{
-          "People": people,
-        };
-        print(people);
-        peopleDocument.updateData(peopledata).whenComplete(() {
-          print("User appended");
-        });
-      }
+    String message;
+    int exist;
+    await Firestore.instance
+        .document("Users/${userData.uid}")
+        .get()
+        .then((onValue) {
+      onValue.exists ? exist = 1 : exist = 0;
     });
-    return ifExist;
+    exist == 1
+        ? message = "${userData.uid} already exists."
+        : message = "Welcome, ${userData.uid}";
+    final snackbar = new SnackBar(content: Text(message));
+    Scaffold.of(context).showSnackBar(snackbar);
+    return exist;
   }
 
   void performsignup() async {
     String _deviceID;
+    List<String> error;
+    final DocumentReference documentReference =
+        Firestore.instance.document("Users/${userData.uid}");
+    setState(() {
+      _playAnimation();
+    });
+
     FirebaseMessaging _message = FirebaseMessaging();
     await _message.getToken().then((token) {
       _deviceID = token;
     });
-    final DocumentReference documentReference =
-        Firestore.instance.document("Users/${userData.uid}");
-    List<String> error;
+
     if (userData.email != null &&
         userData.password != null &&
         userData.displayName != null) {
@@ -183,13 +183,10 @@ class _SignupState extends State<Signup> with SingleTickerProviderStateMixin {
             "groups": [],
             "deviceId": _deviceID
           };
-          documentReference.setData(userinfo).whenComplete(() {
-            final snackbar1 = new SnackBar(
-              content: Text(
-                  "Welcome, ${userData.displayName}"), //replace name with database name.
-            );
-            Scaffold.of(context).showSnackBar(snackbar1);
-          }).catchError((e) => print(e));
+          documentReference
+              .setData(userinfo)
+              .whenComplete(() {})
+              .catchError((e) => print(e));
 
           saveUserInfo(userData.uid, userData.password);
           Timer(
@@ -201,8 +198,10 @@ class _SignupState extends State<Signup> with SingleTickerProviderStateMixin {
                             username: userData.uid,
                           ))));
         } catch (e) {
+          setState(() {
+            _playAnimation();
+          });
           progress = 0;
-          setState(() {});
           print('Error: $e');
           error = e.toString().split("(");
           error = error[1].toString().split(",");
@@ -280,7 +279,7 @@ class _SignupState extends State<Signup> with SingleTickerProviderStateMixin {
                                     ? 'Names field is empty'
                                     : null,
                             keyboardType: TextInputType.text,
-                            onSaved: (val) => userData.displayName = val,
+                            onSaved: (val) => userData.displayName = val.trim(),
                           ),
                           new TextFormField(
                             decoration:
@@ -290,7 +289,7 @@ class _SignupState extends State<Signup> with SingleTickerProviderStateMixin {
                                 val.isEmpty || val.substring(0) == null
                                     ? 'Password field is empty'
                                     : null,
-                            onSaved: (val) => userData.uid = val,
+                            onSaved: (val) => userData.uid = val.trim(),
                           ),
                           new TextFormField(
                             decoration: new InputDecoration(
@@ -298,7 +297,7 @@ class _SignupState extends State<Signup> with SingleTickerProviderStateMixin {
                             validator: (val) =>
                                 !val.contains('@') ? 'Invalid E-mail' : null,
                             keyboardType: TextInputType.emailAddress,
-                            onSaved: (val) => userData.email = val,
+                            onSaved: (val) => userData.email = val.trim(),
                           ),
                           new TextFormField(
                             decoration: new InputDecoration(
@@ -328,30 +327,41 @@ class _SignupState extends State<Signup> with SingleTickerProviderStateMixin {
                                 val.isEmpty || val.substring(0) == null
                                     ? 'Password field is empty'
                                     : null,
-                            onSaved: (val) => userData.password = val,
+                            onSaved: (val) => userData.password = val.trim(),
                             obscureText: _isobs,
                           ),
                           new Padding(
-                            padding: const EdgeInsets.all(15.0),
+                            padding: const EdgeInsets.all(30.0),
                           ),
-                          new RaisedButton(
-                            onPressed: _submit,
-                            padding: EdgeInsets.symmetric(
-                                horizontal: 40.0, vertical: 10.0),
-                            child: new Text("Sign up"),
-                            highlightColor: Colors.red,
-                            splashColor: Colors.white,
-                            shape: new RoundedRectangleBorder(
-                                borderRadius: new BorderRadius.circular(20.0)),
+                          GestureDetector(
+                            onTap: _submit,
+                            child: new Container(
+                              alignment: FractionalOffset.center,
+                              child: buttonSqueezeAnimation.value > 120.0
+                                  ? new Text(
+                                      "Sign Up",
+                                      style: new TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 20.0,
+                                        fontWeight: FontWeight.w300,
+                                        letterSpacing: 0.3,
+                                      ),
+                                    )
+                                  : new CircularProgressIndicator(
+                                      valueColor:
+                                          new AlwaysStoppedAnimation<Color>(
+                                              Colors.white),
+                                    ),
+                              width: buttonSqueezeAnimation.value,
+                              height: 50.0,
+                              decoration: BoxDecoration(
+                                  color: Colors.teal,
+                                  borderRadius: BorderRadius.circular(25.0)),
+                            ),
                           ),
                           new Padding(
                             padding: const EdgeInsets.all(20.0),
                           ),
-                          progress != 1
-                              ? Container()
-                              : CircularProgressIndicator(
-                                  strokeWidth: 5.0,
-                                ),
                           new Padding(
                             padding: const EdgeInsets.all(20.0),
                           ),
@@ -556,7 +566,7 @@ class _SigninState extends State<Signin> with SingleTickerProviderStateMixin {
                                 val.isEmpty || val.substring(0) == null
                                     ? 'Password field is empty'
                                     : null,
-                            onSaved: (val) => userData.password = val,
+                            onSaved: (val) => userData.password = val.trim(),
                             obscureText: _isobscured,
                           ),
                           new Padding(

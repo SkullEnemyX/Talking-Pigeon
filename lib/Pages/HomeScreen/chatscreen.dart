@@ -3,10 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
-import 'package:talking_pigeon_x/authentication.dart';
-import 'package:talking_pigeon_x/chatpage.dart';
-import 'package:talking_pigeon_x/groupchat.dart';
-import 'package:talking_pigeon_x/sign-in.dart';
+import 'package:talking_pigeon_x/Pages/Authentication/authentication.dart';
+import 'package:talking_pigeon_x/Pages/Authentication/sign-in.dart';
+import 'package:talking_pigeon_x/Pages/ChatPage/chatpage.dart';
+import 'package:talking_pigeon_x/Pages/Group/groupchat.dart';
+import 'package:talking_pigeon_x/Pages/Profile/profile.dart';
 import 'package:talking_pigeon_x/widget/animated_bottombar.dart';
 import 'package:unicorndial/unicorndial.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -725,6 +726,8 @@ class _ChatScreenState extends State<ChatScreen> {
       return _buildBody(index);
     } else if (selectedBarIndex == 1) {
       return _buildBody(index);
+    } else if (selectedBarIndex == 3) {
+      return Profile();
     }
   }
 

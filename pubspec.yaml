@@ -21,6 +21,7 @@ dependencies:
   http:
   image_picker:
   cached_network_image:
+  photo_view:
 
 dev_dependencies:
   flutter_test:
