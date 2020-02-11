@@ -565,13 +565,16 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   void darkTheme() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String _theme = (prefs.getString("theme") ?? "Light");
+    print(_theme);
     setState(() {
-      if (gvalue == 0) {
+      if (_theme.compareTo("Dark") == 0) {
         greet = Color(0xFFFFFFFF);
         background = Color(0xFF242424);
         theme = "Light Theme";
         gvalue = 1;
-      } else if (gvalue == 1) {
+      } else {
         greet = Color(0xFF242424);
         background = Color(0xFFFFFFF);
         theme = "Dark Theme";
@@ -581,11 +584,16 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   void menuList(String value) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
     if (value == 'a') {
       darkTheme();
+      String _theme = (prefs.getString("theme") ?? "Light");
+      _theme.compareTo("Light") == 0
+          ? prefs.setString("theme", "Dark")
+          : prefs.setString("theme", "Light");
     } else if (value == 'b') {
       userAuth.logout(userData);
-      SharedPreferences prefs = await SharedPreferences.getInstance();
+
       prefs.setString('username', '');
       prefs.setString('password', '');
       Navigator.pushReplacement(
