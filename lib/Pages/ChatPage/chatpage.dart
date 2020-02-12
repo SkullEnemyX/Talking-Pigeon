@@ -85,7 +85,9 @@ class _ChatPageState extends State<ChatPage> {
     return Scaffold(
       appBar: new AppBar(
         elevation: 0.0,
-        backgroundColor: widget.background,
+        backgroundColor: widget.background == Color(0XFF242424)
+            ? widget.background
+            : Colors.grey.shade100,
         centerTitle: true,
         primary: true,
         title: new Text(
@@ -105,7 +107,9 @@ class _ChatPageState extends State<ChatPage> {
         ),
       ),
       body: new Container(
-        color: widget.background,
+        color: widget.background == Color(0XFF242424)
+            ? widget.background
+            : Colors.grey.shade100,
         width: double.infinity,
         child: Column(
           mainAxisAlignment: MainAxisAlignment.start,
@@ -161,7 +165,9 @@ class _ChatPageState extends State<ChatPage> {
                   Container(
                     height: 45.0,
                     decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: widget.greet != Color(0xFF242424)
+                            ? widget.greet
+                            : Colors.grey.shade300,
                         borderRadius: BorderRadius.circular(50.0)),
                     child: Row(
                       children: <Widget>[
@@ -200,7 +206,7 @@ class _ChatPageState extends State<ChatPage> {
                         color: widget.greet != Color(0xFF242424)
                             ? widget.greet
                             : Colors.grey.shade300,
-                        borderRadius: new BorderRadius.circular(20.0),
+                        borderRadius: new BorderRadius.circular(50.0),
                       ),
                       child: new TextFormField(
                         textAlign: TextAlign.start,
@@ -336,7 +342,9 @@ class Bubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bg = notMe ? Colors.white : Color(0xFF27E9E1).withOpacity(0.7);
+    final bg = notMe
+        ? background == Color(0XFF242424) ? Colors.white : Colors.grey.shade300
+        : Color(0xFF27E9E1).withOpacity(0.7);
     final align = notMe ? CrossAxisAlignment.start : CrossAxisAlignment.end;
     final icon = delivered ? Icons.done_all : Icons.done;
     final double width = MediaQuery.of(context).size.width * 0.75;
@@ -424,7 +432,7 @@ class Bubble extends StatelessWidget {
               Container(
                 margin: const EdgeInsets.all(5.0),
                 padding: const EdgeInsets.all(8.0),
-                constraints: BoxConstraints(maxWidth: width, minWidth: 120.0),
+                constraints: BoxConstraints(maxWidth: width, minWidth: 130.0),
                 decoration: BoxDecoration(
                   boxShadow: [
                     BoxShadow(
@@ -442,7 +450,11 @@ class Bubble extends StatelessWidget {
                       child: Text(
                         message,
                         style: TextStyle(
-                            color: notMe ? Colors.black : Colors.white),
+                            color: notMe
+                                ? Colors.black
+                                : background == Color(0XFF242424)
+                                    ? Colors.white
+                                    : Colors.black),
                       ),
                     ),
                     Positioned(
@@ -452,14 +464,22 @@ class Bubble extends StatelessWidget {
                         children: <Widget>[
                           Text(time,
                               style: TextStyle(
-                                color: notMe ? Colors.black : Colors.white,
+                                color: notMe
+                                    ? Colors.black
+                                    : background == Color(0XFF242424)
+                                        ? Colors.white
+                                        : Colors.black,
                                 fontSize: 8.0,
                               )),
                           SizedBox(width: 3.0),
                           Icon(
                             icon,
                             size: 12.0,
-                            color: notMe ? Colors.black : Colors.white,
+                            color: notMe
+                                ? Colors.black
+                                : background == Color(0XFF242424)
+                                    ? Colors.white
+                                    : Colors.black,
                           )
                         ],
                       ),

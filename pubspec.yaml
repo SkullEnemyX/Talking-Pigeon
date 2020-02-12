@@ -14,8 +14,8 @@ dependencies:
   shared_preferences:
   flutter_spinkit:
   intl:
-  firebase_auth:
-  cloud_firestore:
+  firebase_auth: ^0.11.1+7
+  cloud_firestore: ^0.12.7
   firebase_messaging: ^5.1.0
   unicorndial:
   http:

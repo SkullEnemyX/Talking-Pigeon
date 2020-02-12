@@ -98,12 +98,13 @@ class _SignupState extends State<Signup> with SingleTickerProviderStateMixin {
   void initState() {
     super.initState();
     _loginButtonController = new AnimationController(
-        duration: new Duration(milliseconds: 3000), vsync: this);
+        duration: new Duration(milliseconds: 1500), vsync: this);
     buttonSqueezeAnimation = new Tween(
       begin: 150.0,
       end: 100.0,
     ).animate(new CurvedAnimation(
         parent: _loginButtonController, curve: new Interval(0.0, 0.250)));
+    _loginButtonController.addListener(() => this.setState(() {}));
   }
 
   @override
@@ -179,6 +180,7 @@ class _SignupState extends State<Signup> with SingleTickerProviderStateMixin {
             "name": "${userData.displayName}",
             "username": "${userData.uid}",
             "email": "${userData.email}",
+            "friendList": [],
             "friends": [],
             "groups": [],
             "deviceId": _deviceID
@@ -189,6 +191,18 @@ class _SignupState extends State<Signup> with SingleTickerProviderStateMixin {
               .catchError((e) => print(e));
 
           saveUserInfo(userData.uid, userData.password);
+          DocumentReference people =
+              Firestore.instance.document("People/People");
+          List users;
+          List finalUsers = [];
+          await people.get().then((snapshot) {
+            if (snapshot.exists) {
+              users = snapshot.data["People"] ?? [];
+            }
+            users.forEach((name) => finalUsers.add(name));
+          });
+          finalUsers.add(userData.uid);
+          people.updateData({"People": finalUsers});
           Timer(
               Duration(milliseconds: 400),
               () => Navigator.pushReplacement(
@@ -243,13 +257,12 @@ class _SignupState extends State<Signup> with SingleTickerProviderStateMixin {
               ),
               new Padding(padding: const EdgeInsets.all(15.0)),
               new Text(
-                "Your details ?",
+                "Details...",
                 style: new TextStyle(
                   color: Colors.white,
-                  fontSize: 22.0,
+                  fontSize: 30.0,
+                  wordSpacing: 1.0,
                   fontFamily: 'beauty',
-                  letterSpacing: 3.0,
-                  wordSpacing: 6.0,
                 ),
               ),
               new Padding(
@@ -395,10 +408,10 @@ class _SigninState extends State<Signin> with SingleTickerProviderStateMixin {
   void initState() {
     super.initState();
     _loginButtonController = new AnimationController(
-        duration: new Duration(milliseconds: 3000), vsync: this);
+        duration: new Duration(milliseconds: 1500), vsync: this);
     buttonSqueezeAnimation = new Tween(
-      begin: 70.0,
-      end: 10.0,
+      begin: 150.0,
+      end: 100.0,
     ).animate(new CurvedAnimation(
         parent: _loginButtonController, curve: new Interval(0.0, 0.250)));
     _loginButtonController.addListener(() => this.setState(() {}));
@@ -408,6 +421,13 @@ class _SigninState extends State<Signin> with SingleTickerProviderStateMixin {
   void dispose() {
     _loginButtonController.dispose();
     super.dispose();
+  }
+
+  Future<Null> _playAnimation() async {
+    try {
+      await _loginButtonController.forward();
+      await _loginButtonController.reverse();
+    } on TickerCanceled {}
   }
 
   Future<void> saveUserInfo(String username, String password) async {
@@ -427,17 +447,16 @@ class _SigninState extends State<Signin> with SingleTickerProviderStateMixin {
   void performlogin() async {
     String _uid;
     List<String> error;
+    setState(() {
+      _playAnimation();
+    });
     final DocumentReference documentReference =
         Firestore.instance.document("Users/${userData.uid}");
-    final snackbar1 = new SnackBar(
-      content: Text(
-        "Success",
-        textAlign: TextAlign.center,
-      ),
-    );
+
     await documentReference.get().then((snapshot) {
       if (snapshot.exists) {
         userData.email = snapshot.data['email'];
+        userData.displayName = snapshot.data['name'];
       }
     });
     try {
@@ -448,6 +467,12 @@ class _SigninState extends State<Signin> with SingleTickerProviderStateMixin {
         _deviceID = token;
       });
       if (_uid != null) {
+        final snackbar1 = new SnackBar(
+          content: Text(
+            "Welcome, ${userData.displayName}",
+            textAlign: TextAlign.center,
+          ),
+        );
         saveUserInfo(userData.uid, userData.password);
         documentReference.updateData({"deviceId": _deviceID});
         Scaffold.of(context).showSnackBar(snackbar1);
@@ -461,6 +486,7 @@ class _SigninState extends State<Signin> with SingleTickerProviderStateMixin {
                         ))));
       } else {
         setState(() {
+          _playAnimation();
           final snackbar2 = new SnackBar(
             content: Text(
               "Sign in failed because your email is not verified.",
@@ -501,13 +527,13 @@ class _SigninState extends State<Signin> with SingleTickerProviderStateMixin {
               ),
               new Padding(padding: new EdgeInsets.all(20.0)),
               new Text(
-                "Log in and continue...",
+                "Credentials",
                 style: new TextStyle(
                   color: Colors.white,
-                  fontSize: 22.0,
+                  fontSize: 30.0,
                   //fontWeight: FontWeight.bold,
                   fontFamily: 'beauty',
-                  letterSpacing: 2.5,
+                  letterSpacing: 4,
                   wordSpacing: 3.0,
                 ),
               ),
@@ -572,30 +598,31 @@ class _SigninState extends State<Signin> with SingleTickerProviderStateMixin {
                           new Padding(
                             padding: const EdgeInsets.all(40.0),
                           ),
-                          new RaisedButton(
-                            onPressed: () {
-                              _submit();
-                            },
-                            padding: EdgeInsets.symmetric(
-                                horizontal: buttonSqueezeAnimation.value,
-                                vertical: 10.0),
-                            child: buttonSqueezeAnimation.value > 40.0
-                                ? new Text(
-                                    "Sign In",
-                                    style: new TextStyle(
-                                      color: Colors.white,
+                          GestureDetector(
+                            onTap: _submit,
+                            child: new Container(
+                              alignment: FractionalOffset.center,
+                              child: buttonSqueezeAnimation.value > 120.0
+                                  ? new Text(
+                                      "Sign In",
+                                      style: new TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 20.0,
+                                        fontWeight: FontWeight.w300,
+                                        letterSpacing: 0.3,
+                                      ),
+                                    )
+                                  : new CircularProgressIndicator(
+                                      valueColor:
+                                          new AlwaysStoppedAnimation<Color>(
+                                              Colors.white),
                                     ),
-                                  )
-                                : new CircularProgressIndicator(
-                                    valueColor:
-                                        new AlwaysStoppedAnimation<Color>(
-                                            Colors.white),
-                                    strokeWidth: 2.0,
-                                  ),
-                            highlightColor: Colors.red,
-                            shape: new RoundedRectangleBorder(
-                                borderRadius: new BorderRadius.circular(25.0)),
-                            splashColor: Colors.white,
+                              width: buttonSqueezeAnimation.value,
+                              height: 50.0,
+                              decoration: BoxDecoration(
+                                  color: Colors.teal,
+                                  borderRadius: BorderRadius.circular(25.0)),
+                            ),
                           ),
                           new Padding(
                             padding: const EdgeInsets.all(20.0),
