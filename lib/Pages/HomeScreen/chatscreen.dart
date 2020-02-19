@@ -84,20 +84,6 @@ class _ChatScreenState extends State<ChatScreen> {
     //friendfunc();
   }
 
-  // Future<Null> getSharedPrefs() async {
-  //   //loadingInProgress = true;
-  //   final DocumentReference documentReference =
-  //       Firestore.instance.document("Users/${widget.username}");
-  //   globalUsername = "${widget.username}";
-  //   await documentReference.get().then((snapshot) {
-  //     if (snapshot.exists) {
-  //       setState(() {
-  //         name = snapshot.data['name'];
-  //       });
-  //     }
-  //   });
-  // }
-
   friendFetchQuerySnapshot(String groupID, DocumentReference reference) {
     Stream<QuerySnapshot> friendDocumentReference = reference
         .collection("$groupID")
@@ -264,119 +250,97 @@ class _ChatScreenState extends State<ChatScreen> {
               child: StreamBuilder(
                   stream: fetchData(),
                   builder: (context, snap) {
-                    List list;
-                    List friends = [];
+                    var friends;
+                    var friendUsername;
                     if (snap.hasData) {
-                      List<DocumentSnapshot> docs = snap.data.documents;
-                      //print(docs.length);
-                      list = docs[0]["friends"];
-                      //print(list);
-                      for (int i = 0; i < list.length; i++) {
-                        friends.add(list[i].keys.toList()[0]);
-                      }
-                      //print(friends);
+                      friends = snap.data.documents[0]["friends"];
+                      friendUsername = friends.keys.toList();
                     }
-
-                    return friends.length < 1
-                        ? Center(
-                            child: Text(
-                              selection == 0
-                                  ? "Add new friends to start the conversation"
-                                  : "Make new group and add people",
-                              style: TextStyle(
-                                color: greet,
-                              ),
-                            ),
-                          )
-                        : snap.hasData
-                            ? ListView.builder(
-                                itemCount: list?.length ?? 0,
-                                itemBuilder: (context, index) {
-                                  DocumentReference ref =
-                                      list[index][friends[index]];
-                                  return StreamBuilder(
-                                      stream: friendFetchQuerySnapshot(
-                                          returnGroupId(
-                                              widget.username, friends[index]),
-                                          ref),
-                                      builder: (BuildContext context,
-                                          AsyncSnapshot snapshot) {
-                                        if (snapshot.hasData) {
-                                          List<DocumentSnapshot> documents =
-                                              snapshot.data.documents;
-                                          return ListTile(
-                                            onTap: () {
-                                              Navigator.push(
-                                                  context,
-                                                  MaterialPageRoute(
-                                                      builder: (context) =>
-                                                          ChatPage(
-                                                            name:
-                                                                widget.username,
-                                                            frienduid:
-                                                                friends[index],
-                                                            greet: greet,
-                                                            background:
-                                                                background,
-                                                          )));
-                                            },
-                                            title: Text(
-                                              friends[index],
-                                              style: TextStyle(
-                                                  color: greet,
-                                                  fontSize: 20.0,
-                                                  fontWeight: FontWeight.bold),
-                                            ),
-                                            subtitle: Container(
-                                                padding:
-                                                    EdgeInsets.only(top: 5.0),
-                                                child: formatLastMessage(
-                                                    documents[0]["content"],
-                                                    TextStyle(
-                                                      color: Colors.grey,
-                                                      fontSize: 15.0,
-                                                    ),
-                                                    greet)),
-                                            trailing: snapshot
-                                                    .data.documents.isEmpty
-                                                ? Text(" ")
-                                                : Text(
-                                                    customTimestamp(int.parse(
-                                                        documents[0]
-                                                                ["timestamp"]
-                                                            .toString())),
-                                                    style: TextStyle(
-                                                        color: greet,
-                                                        fontSize: 13.0),
-                                                  ),
-                                            leading: Container(
-                                              decoration: BoxDecoration(
-                                                  border: Border.all(
-                                                    width: 2.0,
-                                                    color: Color(0xFF27E9E1),
-                                                  ),
-                                                  shape: BoxShape.circle),
-                                              child: new CircleAvatar(
-                                                radius: 25.0,
-                                                backgroundColor: background,
-                                                foregroundColor:
-                                                    Color(0xFF27E9E1),
-                                                child: Text(
-                                                  fetchInitials(friends[index]),
-                                                  style: TextStyle(
-                                                      fontWeight:
-                                                          FontWeight.bold,
-                                                      fontSize: 20.0),
+                    return !snap.hasData
+                        ? Center(child: Container())
+                        : ListView.builder(
+                            itemCount: friendUsername?.length ?? 0,
+                            itemBuilder: (context, index) {
+                              DocumentReference ref =
+                                  friends[friendUsername[index]];
+                              return StreamBuilder(
+                                  stream: friendFetchQuerySnapshot(
+                                      returnGroupId(widget.username,
+                                          friendUsername[index]),
+                                      ref),
+                                  builder: (BuildContext context,
+                                      AsyncSnapshot snapshot) {
+                                    if (snapshot.hasData) {
+                                      List<DocumentSnapshot> documents =
+                                          snapshot.data.documents;
+                                      return ListTile(
+                                        onTap: () {
+                                          Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                  builder: (context) =>
+                                                      ChatPage(
+                                                        name: widget.username,
+                                                        frienduid:
+                                                            friendUsername[
+                                                                index],
+                                                        greet: greet,
+                                                        background: background,
+                                                      )));
+                                        },
+                                        title: Text(
+                                          friendUsername[index],
+                                          style: TextStyle(
+                                              color: greet,
+                                              fontSize: 20.0,
+                                              fontWeight: FontWeight.bold),
+                                        ),
+                                        subtitle: Container(
+                                            padding: EdgeInsets.only(top: 5.0),
+                                            child: formatLastMessage(
+                                                documents[0]["content"],
+                                                TextStyle(
+                                                  color: Colors.grey,
+                                                  fontSize: 15.0,
                                                 ),
+                                                greet)),
+                                        trailing: snapshot
+                                                .data.documents.isEmpty
+                                            ? Text(" ")
+                                            : Text(
+                                                customTimestamp(int.parse(
+                                                    documents[0]["timestamp"]
+                                                        .toString())),
+                                                style: TextStyle(
+                                                    color: greet,
+                                                    fontSize: 13.0),
                                               ),
+                                        leading: Container(
+                                          decoration: BoxDecoration(
+                                              border: Border.all(
+                                                width: 2.0,
+                                                color: Color(0xFF27E9E1),
+                                              ),
+                                              shape: BoxShape.circle),
+                                          child: new CircleAvatar(
+                                            radius: 25.0,
+                                            backgroundColor: background,
+                                            foregroundColor: Color(0xFF27E9E1),
+                                            child: Text(
+                                              fetchInitials(
+                                                  friendUsername[index]),
+                                              style: TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 20.0),
                                             ),
-                                          );
-                                        }
-                                        return Container();
-                                      });
-                                },
-                              )
-                            : Container();
+                                          ),
+                                        ),
+                                      );
+                                    }
+                                    return Container();
+                                  });
+                            },
+                          );
                   }))
         ],
       ),
@@ -595,14 +559,9 @@ class _ChatScreenState extends State<ChatScreen> {
         bottomNavigationBar: AnimatedBottomBar(
           background: background,
           onBarTap: (index) {
-            if (index == 2)
-              showSearch(
-                  context: context,
-                  delegate: UserSearch(widget.username, greet, background));
-            else
-              setState(() {
-                selectedBarIndex = index;
-              });
+            setState(() {
+              selectedBarIndex = index;
+            });
           },
           barItems: barItems,
           animationDuration: const Duration(milliseconds: 150),
@@ -679,315 +638,3 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 }
-
-// class UserSearch extends SearchDelegate<String> {
-//   //final DocumentReference documentReference = Firestore.instance.document("Users/$globalUsername");
-//   final CollectionReference collectionReference =
-//       Firestore.instance.collection("Users");
-//   List<String> userList = ["null"];
-//   List<String> presentList = ["null"];
-//   List<String> friendSuggestion = [];
-//   var friends;
-//   var users;
-
-//   Future<List<String>> addfriends(String username) async {
-//     final DocumentReference documentReference =
-//         Firestore.instance.document("Users/$username");
-
-//     await documentReference.get().then((snapshot) {
-//       if (snapshot.exists) {
-//         friends = snapshot.data['friends'];
-//       } else {
-//         friendSuggestion = [];
-//       }
-//     });
-//     if (friendSuggestion.isNotEmpty) {
-//       friendSuggestion.clear();
-//       for (int i = 0; i < friends.length; i++) {
-//         friendSuggestion.add(friends[i].toString());
-//       }
-//     }
-//     return friendSuggestion;
-//   }
-
-//   Future<List<String>> testfunc() async {
-//     final DocumentReference documentReference =
-//         Firestore.instance.document("Users/$globalUsername");
-
-//     await documentReference.get().then((snapshot) {
-//       if (snapshot.exists) {
-//         friends = snapshot.data['friends'];
-//       }
-//     });
-//     if (friendSuggestion.isNotEmpty) friendSuggestion.clear();
-//     for (int i = 0; i < friends.length; i++) {
-//       friendSuggestion.add(friends[i].toString());
-//     }
-//     return friendSuggestion;
-//   }
-
-//   Future<List<String>> checkpart2(String s) async {
-//     DocumentReference reference = Firestore.instance.document("People/People");
-//     await reference.get().then((snapshot) {
-//       if (snapshot.exists) {
-//         users = snapshot.data["People"];
-//       }
-//       if (userList.isNotEmpty) userList.clear();
-//       for (int i = 0; i < users.length; i++) {
-//         userList.add(users[i].toString());
-//       }
-//       userList.remove(globalUsername);
-//     });
-//     //print(userList.where((p)=>p.startsWith(s)).toList()); Used in case we want to return query beginning
-//     return userList
-//         .where((p) => p.startsWith(s))
-//         .toList(); //If exact match needed on query.
-//   }
-
-//   @override
-//   List<Widget> buildActions(BuildContext context) {
-//     return [
-//       IconButton(
-//         icon: Icon(Icons.clear),
-//         onPressed: () {},
-//       )
-//     ];
-//   }
-
-//   @override
-//   Widget buildLeading(BuildContext context) {
-//     return IconButton(
-//       icon: AnimatedIcon(
-//         icon: AnimatedIcons.menu_arrow,
-//         progress: transitionAnimation,
-//       ),
-//       onPressed: () {
-//         close(context, null);
-//       },
-//     );
-//   }
-
-//   @override
-//   Widget buildResults(BuildContext context) {
-//     return FutureBuilder(
-//         future: checkpart2(query),
-//         builder: (BuildContext context, AsyncSnapshot snapshot) {
-//           if (snapshot.connectionState ==
-//               ConnectionState.done) if (snapshot.data.length < 1)
-//             return Container(
-//               child: Center(
-//                 child: Text("No user found"),
-//               ),
-//             );
-//           else
-//             return ListView.builder(
-//               itemCount: snapshot.data.length,
-//               itemBuilder: (context, index) {
-//                 print(snapshot.data.length);
-//                 return InkWell(
-//                   splashColor: Color(0xFF27E9E1),
-//                   onTap: () async {
-//                     Navigator.push(
-//                         context,
-//                         MaterialPageRoute(
-//                             builder: (context) => ChatPage(
-//                                   name: globalUsername,
-//                                   greet: greet,
-//                                   background: background,
-//                                   frienduid: snapshot.data[index],
-//                                 )));
-//                     //Adding people to each other's friendlist if one selects the name of the user.
-//                     var list = await addfriends(globalUsername);
-//                     if (!list.contains(snapshot.data[index])) {
-//                       list.add(snapshot.data[index].toString());
-//                       DocumentReference ref =
-//                           Firestore.instance.document("Users/$globalUsername");
-//                       Map<String, dynamic> peopledata = <String, dynamic>{
-//                         "friends": list,
-//                       };
-//                       await ref.updateData(peopledata).whenComplete(() {
-//                         list = [];
-//                       }).catchError((e) => print(e));
-//                     }
-//                     list = await addfriends(snapshot.data[index]);
-//                     if (!list.contains(globalUsername)) {
-//                       list.add(globalUsername);
-//                       DocumentReference ref = Firestore.instance
-//                           .document("Users/${snapshot.data[index]}");
-//                       Map<String, dynamic> peopledata = <String, dynamic>{
-//                         "friends": list,
-//                       };
-//                       await ref
-//                           .updateData(peopledata)
-//                           .whenComplete(() {})
-//                           .catchError((e) => print(e));
-//                     }
-//                   },
-//                   child: Container(
-//                     child: Column(
-//                       children: <Widget>[
-//                         ListTile(
-//                           leading: Icon(Icons.person),
-//                           title: Text(snapshot.data[index]),
-//                         ),
-//                         Padding(
-//                           padding: EdgeInsets.only(top: 2.0),
-//                         ),
-//                         Divider(
-//                           color: Colors.grey,
-//                           height: 2.0,
-//                           indent: 70.0,
-//                         )
-//                       ],
-//                     ),
-//                   ),
-//                 );
-//               },
-//             );
-//           else {
-//             return Center(
-//                 child: SpinKitDoubleBounce(
-//               size: 60.0,
-//               color: Color(0xFF27E9E1),
-//             ));
-//           }
-//         });
-//   }
-
-//   @override
-//   Widget buildSuggestions(BuildContext context) {
-//     // presentList = query.isEmpty?friendSuggestion:userList.where((word)=>word.startsWith(query)).toList();
-
-//     return query.isEmpty
-//         ? FutureBuilder(
-//             future: testfunc(),
-//             builder: (BuildContext context, AsyncSnapshot snapshot) {
-//               if (snapshot.connectionState == ConnectionState.done)
-//                 return ListView.builder(
-//                   itemBuilder: (context, index) => InkWell(
-//                     splashColor: Color(0xFF27E9E1),
-//                     onTap: () {
-//                       Navigator.push(
-//                           context,
-//                           MaterialPageRoute(
-//                               builder: (context) => ChatPage(
-//                                     name: globalUsername,
-//                                     greet: greet,
-//                                     background: background,
-//                                     frienduid: snapshot.data[index],
-//                                   )));
-//                     },
-//                     child: Container(
-//                       child: Column(
-//                         children: <Widget>[
-//                           ListTile(
-//                             leading: Icon(Icons.person),
-//                             title: Text(snapshot.data[index]),
-//                           ),
-//                           Padding(
-//                             padding: EdgeInsets.only(top: 2.0),
-//                           ),
-//                           Divider(
-//                             color: Colors.grey,
-//                             height: 2.0,
-//                             indent: 70.0,
-//                           )
-//                         ],
-//                       ),
-//                     ),
-//                   ),
-//                   itemCount: snapshot.data?.length ?? 0,
-//                 );
-//               else {
-//                 return Center(
-//                     child: SpinKitDoubleBounce(
-//                   size: 60.0,
-//                   color: Color(0xFF27E9E1),
-//                 ));
-//               }
-//             })
-//         : FutureBuilder(
-//             future: checkpart2(query),
-//             builder: (BuildContext context, AsyncSnapshot snapshot) {
-//               if (snapshot.connectionState ==
-//                   ConnectionState.done) if (snapshot.data.length < 1)
-//                 return Container(
-//                   child: Center(
-//                     child: Text("No user found"),
-//                   ),
-//                 );
-//               else
-//                 return ListView.builder(
-//                   itemCount: snapshot.data.length,
-//                   itemBuilder: (context, index) {
-//                     print(snapshot.data.length);
-//                     return InkWell(
-//                       splashColor: Color(0xFF27E9E1),
-//                       onTap: () async {
-//                         Navigator.push(
-//                             context,
-//                             MaterialPageRoute(
-//                                 builder: (context) => ChatPage(
-//                                       name: globalUsername,
-//                                       greet: greet,
-//                                       background: background,
-//                                       frienduid: snapshot.data[index],
-//                                     )));
-//                         //Adding people to each other's friendlist if one selects the name of the user.
-//                         var list = await addfriends(globalUsername);
-//                         if (!list.contains(snapshot.data[index])) {
-//                           list.add(snapshot.data[index].toString());
-//                           DocumentReference ref = Firestore.instance
-//                               .document("Users/$globalUsername");
-//                           Map<String, dynamic> peopledata = <String, dynamic>{
-//                             "friends": list,
-//                           };
-//                           await ref.updateData(peopledata).whenComplete(() {
-//                             list = [];
-//                           }).catchError((e) => print(e));
-//                         }
-//                         list = await addfriends(snapshot.data[index]);
-//                         if (!list.contains(globalUsername)) {
-//                           list.add(globalUsername);
-//                           DocumentReference ref = Firestore.instance
-//                               .document("Users/${snapshot.data[index]}");
-//                           Map<String, dynamic> peopledata = <String, dynamic>{
-//                             "friends": list,
-//                           };
-//                           await ref
-//                               .updateData(peopledata)
-//                               .whenComplete(() {})
-//                               .catchError((e) => print(e));
-//                         }
-//                       },
-//                       child: Container(
-//                         child: Column(
-//                           children: <Widget>[
-//                             ListTile(
-//                               leading: Icon(Icons.person),
-//                               title: Text(snapshot.data[index]),
-//                             ),
-//                             Padding(
-//                               padding: EdgeInsets.only(top: 2.0),
-//                             ),
-//                             Divider(
-//                               color: Colors.grey,
-//                               height: 2.0,
-//                               indent: 70.0,
-//                             )
-//                           ],
-//                         ),
-//                       ),
-//                     );
-//                   },
-//                 );
-//               else {
-//                 return Center(
-//                     child: SpinKitDoubleBounce(
-//                   size: 60.0,
-//                   color: Color(0xFF27E9E1),
-//                 ));
-//               }
-//             });
-//   }
-// }

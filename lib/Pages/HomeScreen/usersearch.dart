@@ -22,34 +22,22 @@ class UserSearch extends SearchDelegate {
   friendAddQuerySnapshot(String username, String friend) async {
     //final String groupId = returnGroupId(widget.name, widget.frienduid);
     String returnGroupID = returnGroupId(username, friend);
-    List friendList;
-    List friendSnapShot;
+    var friendSnapShot;
     DocumentReference messages =
         Firestore.instance.document("messages/$returnGroupID");
     print(returnGroupID);
     //Running the query for the first user.
     DocumentReference userA =
         Firestore.instance.collection('Users').document(username);
-    Map<String, dynamic> query = {"$friend": messages};
     await userA.get().then((snapshot) {
       if (snapshot.exists) {
-        friendList = snapshot.data["friendList"] ?? [];
-        friendSnapShot = snapshot.data["friends"] ?? [];
-        print(friendList);
+        friendSnapShot = snapshot.data["friends"] ?? {};
       }
-      List friendListNew = [];
-      List friendSnapShotNew = [];
-      if (!friendList.contains(friend)) {
-        friendList.forEach((name) => friendListNew.add(name));
-        friendSnapShot.forEach((query) => friendSnapShotNew.add(query));
-        friendListNew.add(friend);
-        friendSnapShotNew.add(query);
-        Map<String, dynamic> friends = {
-          "friends": friendSnapShotNew,
-          "friendList": friendListNew
-        };
-        userA.updateData(friends);
-      }
+      friendSnapShot[friend] = messages;
+      Map<String, dynamic> friends = {
+        "friends": friendSnapShot,
+      };
+      userA.updateData(friends);
     });
   }
 

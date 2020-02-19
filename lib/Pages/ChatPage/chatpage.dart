@@ -232,6 +232,9 @@ class _ChatPageState extends State<ChatPage> {
                             )),
                         controller: textEditingController,
                         keyboardType: TextInputType.multiline,
+                        onFieldSubmitted: (message) => message != ""
+                            ? sendMessage(message, 0, ImageSource.gallery)
+                            : null,
                         textCapitalization: TextCapitalization.sentences,
                         style: TextStyle(
                           color: widget.background == Color(0xFF242424)
