@@ -1,13 +1,15 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
 import 'package:photo_view/photo_view.dart';
+import 'package:talking_pigeon_x/Pages/HomeScreen/chatscreen.dart';
 //Used in case when the image needs to be uploaded to imgbb.
 
 class ChatPage extends StatefulWidget {
@@ -24,41 +26,65 @@ class ChatPage extends StatefulWidget {
 }
 
 class _ChatPageState extends State<ChatPage> {
-  var snap;
-
+  Stream<QuerySnapshot> snap;
+  StreamSubscription snapshotlastseen;
   @override
   void initState() {
     super.initState();
     textEditingController.clear();
     setState(() {
       snap = snapshotReturn();
+      snapshotlastseen = _fetchInitDetails().listen((val) {
+        DocumentSnapshot db = val.documents[0];
+        setState(() {
+          status = db["status"] ?? " ";
+          receiverToken = db["deviceId"] ?? " ";
+        });
+      });
     });
-    fetchDeviceID();
   }
 
   @override
   void dispose() {
     super.dispose();
     textEditingController.dispose();
+    snapshotlastseen.cancel();
   }
 
   final TextEditingController textEditingController =
       new TextEditingController();
   List listMsg = [];
   String msg;
-  String receiverToken;
-  final FirebaseMessaging _messaging = FirebaseMessaging();
+  String receiverToken = " ";
+  String status = " ";
   final ScrollController listScrollController = new ScrollController();
 
-  fetchDeviceID() async {
-    final DocumentReference documentReference =
-        Firestore.instance.document("Users/${widget.frienduid}");
-    await documentReference.get().then((snapshot) {
-      if (snapshot.exists) {
-        receiverToken = snapshot.data["deviceId"];
-        _messaging.getToken().then((token) {});
+  Stream<QuerySnapshot> _fetchInitDetails() {
+    Stream<QuerySnapshot> snap = Firestore.instance
+        .collection("Users")
+        .where("username", isEqualTo: "${widget.frienduid}")
+        .snapshots();
+    return snap;
+  }
+
+  String lastSeen(String status) {
+    if (status.compareTo("online") == 0 ||
+        status.compareTo(" ") == 0 ||
+        status == null) {
+      return status;
+    } else {
+      var now = DateTime.now();
+      var date = DateTime.fromMillisecondsSinceEpoch(int.parse(status));
+      var diff = now.difference(date);
+      var formatHR = DateFormat("h:mm a");
+      var formatDAY = DateFormat("d/M/y");
+      if (diff.inDays < 1) {
+        return "last seen today at " + formatHR.format(date);
+      } else if (diff.inDays == 1) {
+        return "last seen yesterday at " + formatHR.format(date);
       }
-    });
+      return "last seen on " + formatDAY.format(date);
+    }
   }
 
   String returnGroupId(String myid, String friendid) {
@@ -71,7 +97,7 @@ class _ChatPageState extends State<ChatPage> {
 
   Stream<QuerySnapshot> snapshotReturn() {
     final String groupId = returnGroupId(widget.name, widget.frienduid);
-    var snap = Firestore.instance
+    Stream<QuerySnapshot> snap = Firestore.instance
         .collection('messages')
         .document(groupId)
         .collection(groupId)
@@ -88,13 +114,25 @@ class _ChatPageState extends State<ChatPage> {
         backgroundColor: widget.background == Color(0XFF242424)
             ? widget.background
             : Colors.grey.shade100,
-        centerTitle: true,
         primary: true,
-        title: new Text(
-          "${widget.frienduid}"
-              .toString()
-              .split(" ")[0], //Change Name to Friends name.
-          style: TextStyle(fontSize: 23.0, color: widget.greet),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Text(
+              "${widget.frienduid}"
+                  .toString()
+                  .split(" ")[0], //Change Name to Friends name.
+              style: GoogleFonts.pTSans(
+                  fontSize: 25.0,
+                  color: widget.greet,
+                  fontWeight: FontWeight.w600),
+            ),
+            Text(
+              lastSeen(status),
+              style: TextStyle(
+                  color: greet, fontSize: 15.0, fontWeight: FontWeight.w400),
+            ),
+          ],
         ),
         leading: new IconButton(
           icon: Icon(
@@ -140,8 +178,8 @@ class _ChatPageState extends State<ChatPage> {
                                         ? false
                                         : true,
                                     delivered: true,
-                                    time: readTimestamp(
-                                        int.parse(document[i]["timestamp"])),
+                                    sendername: document[i]["isMe"],
+                                    timestamp: document[i]["timestamp"],
                                     methodVia: 0,
                                     background: widget.background,
                                     type:
@@ -236,7 +274,7 @@ class _ChatPageState extends State<ChatPage> {
                             ? sendMessage(message, 0, ImageSource.gallery)
                             : null,
                         textCapitalization: TextCapitalization.sentences,
-                        style: TextStyle(
+                        style: GoogleFonts.openSans(
                           color: widget.background == Color(0xFF242424)
                               ? widget.background
                               : widget.greet,
@@ -267,13 +305,13 @@ class _ChatPageState extends State<ChatPage> {
   void sendMessage(String content, int type, ImageSource source) async {
     //message type = 0; image type = 1;
     //Camera option: 0; gallery option: 1
-    int timeStamp = DateTime.now().millisecondsSinceEpoch;
+    final int timeStamp = DateTime.now().millisecondsSinceEpoch;
     WidgetsBinding.instance
         .addPostFrameCallback((_) => textEditingController.clear());
     String imageUrl;
     var url;
     if (type == 1) {
-      File _image = await ImagePicker.pickImage(source: source, maxWidth: 720);
+      File _image = await ImagePicker.pickImage(source: source, maxWidth: 1024);
       List<int> imageBytes = _image.readAsBytesSync();
       imageUrl = base64Encode(imageBytes);
       // print(imageUrl); Very bad algortihm, try not to use.
@@ -282,9 +320,6 @@ class _ChatPageState extends State<ChatPage> {
         "image": imageUrl,
       };
       try {
-        setState(() {
-          sending = 1;
-        });
         var response =
             await http.post("https://api.imgbb.com/1/upload", body: body);
         var jsonObject = json.decode(response.body);
@@ -293,7 +328,6 @@ class _ChatPageState extends State<ChatPage> {
         throw e;
       }
     } else if (type == 0) {
-      print(content);
       setState(() {
         listScrollController.animateTo(0.0,
             duration: Duration(milliseconds: 300), curve: Curves.elasticIn);
@@ -311,64 +345,80 @@ class _ChatPageState extends State<ChatPage> {
       //this set isImage field to boolean true if it is an image else false if it is a message.
     };
 
-    Firestore.instance
+    await Firestore.instance
         .collection('messages')
         .document(returnGroupId(widget.name, widget.frienduid))
         .collection(returnGroupId(widget.name, widget.frienduid))
         .document(timeStamp.toString())
         .setData(transaction);
-    setState(() {
-      sending = 0;
-    });
+    //Updating latest timestamp on sender's friendlist
+    await Firestore.instance
+        .collection("FriendList")
+        .document("FriendList")
+        .collection(widget.name)
+        .document(widget.frienduid)
+        .updateData({"lastTimestamp": timeStamp.toString()});
+    //Updating latest timestamp on receiver's friendlist
+    await Firestore.instance
+        .collection("FriendList")
+        .document("FriendList")
+        .collection(widget.frienduid)
+        .document(widget.name)
+        .updateData({"lastTimestamp": timeStamp.toString()});
   }
 }
-
-int sending = 0;
 
 class Bubble extends StatelessWidget {
   Bubble(
       {this.message,
       this.notMe,
       this.delivered,
-      this.time,
+      this.timestamp,
+      this.sendername,
       this.type = 0,
       this.background,
       this.methodVia = 0});
   final bool delivered;
   final bool notMe;
   final String message;
-  final String time;
+  final String timestamp;
   final int type;
+  final String sendername;
   final Color background;
   //This describes whether the message sent is an image or a text.
   final int methodVia; //For personal chat: 0, for group chat: 1
 
+  String readTimestamp(int timestamp) {
+    var format = new DateFormat('HH:mm a');
+    var date = new DateTime.fromMicrosecondsSinceEpoch(timestamp * 1000);
+    var time = '';
+    format = DateFormat(" d/M/y, h:mm a");
+    time = format.format(date);
+    return time;
+  }
+
   @override
   Widget build(BuildContext context) {
+    final double radiusCircle = 20.0;
     final bg = notMe
         ? background == Color(0XFF242424) ? Colors.white : Colors.grey.shade300
         : Color(0xFF27E9E1).withOpacity(0.7);
     final align = notMe ? CrossAxisAlignment.start : CrossAxisAlignment.end;
     final icon = delivered ? Icons.done_all : Icons.done;
     final double width = MediaQuery.of(context).size.width * 0.75;
-    final radius = notMe
-        ? BorderRadius.only(
-            topRight: Radius.circular(5.0),
-            bottomLeft: Radius.circular(10.0),
-            bottomRight: Radius.circular(5.0),
-          )
-        : BorderRadius.only(
-            topLeft: Radius.circular(5.0),
-            bottomLeft: Radius.circular(5.0),
-            bottomRight: Radius.circular(10.0),
-          );
+    final radius = BorderRadius.all(Radius.circular(radiusCircle));
     return type == 1
         ? Column(
             crossAxisAlignment: align,
             children: <Widget>[
               InkWell(
                 onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                    builder: (context) => ImageScreen(message))),
+                    builder: (context) => ImageScreen(
+                          message,
+                          background: background,
+                          timestamp: timestamp,
+                          username: sendername,
+                        ))),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(20.0),
                   child: Container(
@@ -385,46 +435,6 @@ class Bubble extends StatelessWidget {
                     width: width - 20,
                     height: width - 50,
                   ),
-                  // child: Image.network(
-                  //   message,
-                  //   loadingBuilder: (BuildContext context, Widget child,
-                  //       ImageChunkEvent loadingProgress) {
-                  //     if (loadingProgress == null) {
-                  //       return Container(
-                  //         margin: const EdgeInsets.all(10.0),
-                  //         child: Card(
-                  //           clipBehavior: Clip.antiAlias,
-                  //           shape: RoundedRectangleBorder(
-                  //               borderRadius: BorderRadius.circular(20.0)),
-                  //           child: child,
-                  //         ),
-                  //         width: width - 20,
-                  //         height: width - 50,
-                  //       );
-                  //     }
-                  //     return Container(
-                  //       margin: const EdgeInsets.all(10.0),
-                  //       width: width - 20,
-                  //       height: width - 50,
-                  //       child: Card(
-                  //         clipBehavior: Clip.antiAlias,
-                  //         shape: RoundedRectangleBorder(
-                  //             borderRadius: BorderRadius.circular(20.0)),
-                  //         child: Center(
-                  //           child: CircularProgressIndicator(
-                  //             value: loadingProgress.expectedTotalBytes != null
-                  //                 ? loadingProgress.cumulativeBytesLoaded /
-                  //                     loadingProgress.expectedTotalBytes
-                  //                 : null,
-                  //             valueColor: new AlwaysStoppedAnimation<Color>(
-                  //                 Colors.teal),
-                  //           ),
-                  //         ),
-                  //       ),
-                  //     );
-                  //   },
-                  //   fit: BoxFit.cover,
-                  // ),
                 ),
               ),
             ],
@@ -433,8 +443,9 @@ class Bubble extends StatelessWidget {
             crossAxisAlignment: align,
             children: <Widget>[
               Container(
-                margin: const EdgeInsets.all(5.0),
-                padding: const EdgeInsets.all(8.0),
+                margin: const EdgeInsets.only(
+                    left: 10, top: 5.0, bottom: 5.0, right: 10.0),
+                padding: const EdgeInsets.all(10.0),
                 constraints: BoxConstraints(maxWidth: width, minWidth: 130.0),
                 decoration: BoxDecoration(
                   boxShadow: [
@@ -447,32 +458,33 @@ class Bubble extends StatelessWidget {
                   borderRadius: radius,
                 ),
                 child: Stack(
+                  alignment:
+                      notMe ? Alignment.centerLeft : Alignment.centerRight,
                   children: <Widget>[
                     Padding(
-                      padding: EdgeInsets.only(right: 48.0, bottom: 12.0),
-                      child: Text(
-                        message,
-                        style: TextStyle(
-                            color: notMe
-                                ? Colors.black
-                                : background == Color(0XFF242424)
-                                    ? Colors.white
-                                    : Colors.black),
-                      ),
+                      padding: EdgeInsets.only(right: 0.0, bottom: 15.0),
+                      child: Text(message,
+                          style: GoogleFonts.pTSans(
+                              fontSize: 16.0,
+                              color: notMe
+                                  ? Colors.black
+                                  : background == Color(0XFF242424)
+                                      ? Colors.white
+                                      : Colors.black)),
                     ),
                     Positioned(
                       bottom: 0.0,
                       right: 0.0,
                       child: Row(
                         children: <Widget>[
-                          Text(time,
+                          Text(readTimestamp(int.parse(timestamp)),
                               style: TextStyle(
                                 color: notMe
                                     ? Colors.black
                                     : background == Color(0XFF242424)
                                         ? Colors.white
                                         : Colors.black,
-                                fontSize: 8.0,
+                                fontSize: 9.0,
                               )),
                           SizedBox(width: 3.0),
                           Icon(
@@ -498,20 +510,74 @@ class Bubble extends StatelessWidget {
 class ImageScreen extends StatefulWidget {
   final String message;
   final Color background;
-  ImageScreen(this.message, {this.background = Colors.white});
+  final String username;
+  final String timestamp;
+  ImageScreen(this.message,
+      {this.background = Colors.white, this.username, this.timestamp});
 
   @override
   _ImageScreenState createState() => _ImageScreenState();
 }
 
 class _ImageScreenState extends State<ImageScreen> {
+  String readTimestamp(int timestamp) {
+    var format = new DateFormat('HH:mm a');
+    var date = new DateTime.fromMicrosecondsSinceEpoch(timestamp * 1000);
+    var time = '';
+    format = DateFormat(" d/M/y, h:mm a");
+    time = format.format(date);
+    return time;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        elevation: 0.0,
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Text(
+              "${widget.username}", //Change Name to Friends name.
+              style: GoogleFonts.pTSans(
+                  fontSize: 25.0,
+                  color: background == Color(0xFF242424)
+                      ? Colors.white
+                      : Colors.black,
+                  fontWeight: FontWeight.w600),
+            ),
+            Text(
+              readTimestamp(int.parse(widget.timestamp)),
+              style: TextStyle(
+                  color: background == Color(0xFF242424)
+                      ? Colors.white
+                      : Colors.black,
+                  fontSize: 15.0,
+                  fontWeight: FontWeight.w400),
+            ),
+          ],
+        ),
+        backgroundColor:
+            background == Color(0xFF242424) ? Colors.black : Colors.white,
+        leading: IconButton(
+            icon: Icon(
+              Icons.arrow_back,
+              color:
+                  background == Color(0xFF242424) ? Colors.white : Colors.black,
+            ),
+            onPressed: () {
+              Navigator.pop(context);
+            }),
+      ),
       body: Container(
         child: PhotoView(
+          backgroundDecoration: BoxDecoration(
+              color: background == Color(0xFF242424)
+                  ? Colors.black
+                  : Colors.white),
           imageProvider: CachedNetworkImageProvider(widget.message),
           minScale: PhotoViewComputedScale.contained,
+          maxScale: PhotoViewComputedScale.covered,
         ),
       ),
     );

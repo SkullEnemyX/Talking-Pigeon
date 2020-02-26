@@ -36,6 +36,7 @@ class _LoginScreenState extends State<LoginScreen>
     return MaterialApp(
       theme: ThemeData(primarySwatch: Colors.teal),
       home: new Scaffold(
+          resizeToAvoidBottomInset: false,
           appBar: new AppBar(
             bottomOpacity: 0.7,
             title: new Text(
@@ -180,9 +181,7 @@ class _SignupState extends State<Signup> with SingleTickerProviderStateMixin {
             "name": "${userData.displayName}",
             "username": "${userData.uid}",
             "email": "${userData.email}",
-            "friendList": [],
-            "friends": [],
-            "groups": [],
+            "status": "online",
             "deviceId": _deviceID
           };
           documentReference
@@ -202,7 +201,7 @@ class _SignupState extends State<Signup> with SingleTickerProviderStateMixin {
             users.forEach((name) => finalUsers.add(name));
           });
           finalUsers.add(userData.uid);
-          people.updateData({"People": finalUsers});
+          await people.updateData({"People": finalUsers});
           Timer(
               Duration(milliseconds: 400),
               () => Navigator.pushReplacement(
@@ -257,12 +256,14 @@ class _SignupState extends State<Signup> with SingleTickerProviderStateMixin {
               ),
               new Padding(padding: const EdgeInsets.all(15.0)),
               new Text(
-                "Details...",
-                style: new TextStyle(
+                "Details",
+                style: TextStyle(
                   color: Colors.white,
                   fontSize: 30.0,
-                  wordSpacing: 1.0,
+                  //fontWeight: FontWeight.bold,
                   fontFamily: 'beauty',
+                  letterSpacing: 4,
+                  wordSpacing: 3.0,
                 ),
               ),
               new Padding(
@@ -474,7 +475,8 @@ class _SigninState extends State<Signin> with SingleTickerProviderStateMixin {
           ),
         );
         saveUserInfo(userData.uid, userData.password);
-        documentReference.updateData({"deviceId": _deviceID});
+        documentReference
+            .updateData({"deviceId": _deviceID, "status": "online"});
         Scaffold.of(context).showSnackBar(snackbar1);
         Timer(
             Duration(milliseconds: 400),
@@ -528,7 +530,7 @@ class _SigninState extends State<Signin> with SingleTickerProviderStateMixin {
               new Padding(padding: new EdgeInsets.all(20.0)),
               new Text(
                 "Credentials",
-                style: new TextStyle(
+                style: TextStyle(
                   color: Colors.white,
                   fontSize: 30.0,
                   //fontWeight: FontWeight.bold,

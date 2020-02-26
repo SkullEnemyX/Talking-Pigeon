@@ -1,5 +1,7 @@
 import 'dart:io';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/intl.dart';
 import 'package:talking_pigeon_x/Pages/Authentication/authentication.dart';
@@ -36,13 +38,14 @@ class _ChatScreenState extends State<ChatScreen> {
   String name;
   String theme = "Dark Theme";
   int gvalue = 0;
+  FirebaseMessaging _firebaseMessaging = FirebaseMessaging();
   TextEditingController textEditingController = TextEditingController();
   int hour;
   int selectedBarIndex = 0;
   Userauthentication userAuth = new Userauthentication();
   UserData userData = new UserData();
   //bool loadingInProgress;
-  String lastMessage;
+  String lastMessage = "";
   String friendid;
   var childButtons = List<UnicornButton>();
   //Bottom Animated Bar
@@ -73,14 +76,42 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   void initState() {
     super.initState();
-    //getSharedPrefs();
     _initx();
     insertUnicornButtons();
+    _firebaseMessaging.configure(
+        onMessage: (Map<String, dynamic> message) async {
+      print(message);
+    }, onLaunch: (Map<String, dynamic> message) async {
+      await Navigator.push(
+          context,
+          MaterialPageRoute(
+              builder: (context) => ChatPage(
+                    name: widget.username,
+                    frienduid: message['data']['sendername'],
+                    greet: greet,
+                    background: background,
+                  )));
+      //print(message);
+    }, onResume: (Map<String, dynamic> message) async {
+      await Navigator.push(
+          context,
+          MaterialPageRoute(
+              builder: (context) => ChatPage(
+                    name: widget.username,
+                    frienduid: message['data']['sendername'],
+                    greet: greet,
+                    background: background,
+                  )));
+      //print(message);
+    });
   }
 
-  _initx() {
+  _initx() async {
     fetchTime();
     darkTheme();
+    await Firestore.instance
+        .document("Users/${widget.username}")
+        .updateData({"status": "online"});
     //friendfunc();
   }
 
@@ -103,7 +134,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
   String customTimestamp(int timestamp) {
     var now = new DateTime.now();
-    var format = new DateFormat('HH:mm a');
+    var format = new DateFormat('h:mm a');
     var date = new DateTime.fromMicrosecondsSinceEpoch(timestamp * 1000);
     var diff = now.difference(date);
     var time = '';
@@ -178,6 +209,16 @@ class _ChatScreenState extends State<ChatScreen> {
     return snapshot;
   }
 
+  _fetchFromFriendsCollection() {
+    Stream<QuerySnapshot> snapshot = Firestore.instance
+        .collection("FriendList")
+        .document("FriendList")
+        .collection(widget.username)
+        .orderBy("lastTimestamp", descending: true)
+        .snapshots();
+    return snapshot;
+  }
+
   //Returns a widget that formats the last sent message.
   Widget formatLastMessage(String string, TextStyle style, Color greet) {
     if (string.isEmpty) {
@@ -247,26 +288,22 @@ class _ChatScreenState extends State<ChatScreen> {
             ],
           ),
           new Expanded(
-              child: StreamBuilder(
-                  stream: fetchData(),
+              child: StreamBuilder<QuerySnapshot>(
+                  stream: _fetchFromFriendsCollection(),
                   builder: (context, snap) {
-                    var friends;
-                    var friendUsername;
-                    if (snap.hasData) {
-                      friends = snap.data.documents[0]["friends"];
-                      friendUsername = friends.keys.toList();
-                    }
                     return !snap.hasData
                         ? Center(child: Container())
                         : ListView.builder(
-                            itemCount: friendUsername?.length ?? 0,
+                            itemCount: snap.data.documents?.length ?? 0,
                             itemBuilder: (context, index) {
                               DocumentReference ref =
-                                  friends[friendUsername[index]];
-                              return StreamBuilder(
+                                  snap.data.documents[index]["conversation"];
+                              String friendUsername =
+                                  snap.data.documents[index]["username"];
+                              return StreamBuilder<QuerySnapshot>(
                                   stream: friendFetchQuerySnapshot(
-                                      returnGroupId(widget.username,
-                                          friendUsername[index]),
+                                      returnGroupId(
+                                          widget.username, friendUsername),
                                       ref),
                                   builder: (BuildContext context,
                                       AsyncSnapshot snapshot) {
@@ -282,15 +319,14 @@ class _ChatScreenState extends State<ChatScreen> {
                                                       ChatPage(
                                                         name: widget.username,
                                                         frienduid:
-                                                            friendUsername[
-                                                                index],
+                                                            friendUsername,
                                                         greet: greet,
                                                         background: background,
                                                       )));
                                         },
                                         title: Text(
-                                          friendUsername[index],
-                                          style: TextStyle(
+                                          friendUsername,
+                                          style: GoogleFonts.pTSans(
                                               color: greet,
                                               fontSize: 20.0,
                                               fontWeight: FontWeight.bold),
@@ -298,7 +334,9 @@ class _ChatScreenState extends State<ChatScreen> {
                                         subtitle: Container(
                                             padding: EdgeInsets.only(top: 5.0),
                                             child: formatLastMessage(
-                                                documents[0]["content"],
+                                                documents.isNotEmpty
+                                                    ? documents[0]["content"]
+                                                    : "*no new messages*",
                                                 TextStyle(
                                                   color: Colors.grey,
                                                   fontSize: 15.0,
@@ -308,9 +346,12 @@ class _ChatScreenState extends State<ChatScreen> {
                                                 .data.documents.isEmpty
                                             ? Text(" ")
                                             : Text(
-                                                customTimestamp(int.parse(
-                                                    documents[0]["timestamp"]
-                                                        .toString())),
+                                                documents.isNotEmpty
+                                                    ? customTimestamp(int.parse(
+                                                        documents[0]
+                                                                ["timestamp"] ??
+                                                            ""))
+                                                    : "",
                                                 style: TextStyle(
                                                     color: greet,
                                                     fontSize: 13.0),
@@ -327,8 +368,7 @@ class _ChatScreenState extends State<ChatScreen> {
                                             backgroundColor: background,
                                             foregroundColor: Color(0xFF27E9E1),
                                             child: Text(
-                                              fetchInitials(
-                                                  friendUsername[index]),
+                                              fetchInitials(friendUsername),
                                               style: TextStyle(
                                                   fontWeight: FontWeight.bold,
                                                   fontSize: 20.0),
@@ -579,10 +619,7 @@ class _ChatScreenState extends State<ChatScreen> {
           centerTitle: true,
           title: Text(
             "Talking Pigeon",
-            style: TextStyle(
-              color: greet,
-              fontSize: 25.0,
-            ),
+            style: TextStyle(color: greet, fontSize: 30.0),
           ),
           leading: new PopupMenuButton<String>(
             onSelected: menuList,

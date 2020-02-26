@@ -222,7 +222,7 @@ class _GroupChatState extends State<GroupChat> {
                                     message: listMsg[i][0],
                                     notMe: listMsg[i][1],
                                     delivered: true,
-                                    time:
+                                    timestamp:
                                         readTimestamp(int.parse(listMsg[i][2])),
                                     methodVia: 1,
                                   ),

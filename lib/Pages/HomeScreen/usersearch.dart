@@ -22,22 +22,30 @@ class UserSearch extends SearchDelegate {
   friendAddQuerySnapshot(String username, String friend) async {
     //final String groupId = returnGroupId(widget.name, widget.frienduid);
     String returnGroupID = returnGroupId(username, friend);
-    var friendSnapShot;
     DocumentReference messages =
         Firestore.instance.document("messages/$returnGroupID");
     print(returnGroupID);
     //Running the query for the first user.
-    DocumentReference userA =
-        Firestore.instance.collection('Users').document(username);
-    await userA.get().then((snapshot) {
-      if (snapshot.exists) {
-        friendSnapShot = snapshot.data["friends"] ?? {};
-      }
-      friendSnapShot[friend] = messages;
-      Map<String, dynamic> friends = {
-        "friends": friendSnapShot,
-      };
-      userA.updateData(friends);
+    final String timestamp = DateTime.now().millisecondsSinceEpoch.toString();
+    await Firestore.instance
+        .collection("FriendList")
+        .document("FriendList")
+        .collection(username)
+        .document(friend)
+        .setData({
+      "username": friend,
+      "conversation": messages,
+      "lastTimestamp": timestamp
+    });
+    await Firestore.instance
+        .collection("FriendList")
+        .document("FriendList")
+        .collection(friend)
+        .document(username)
+        .setData({
+      "username": username,
+      "conversation": messages,
+      "lastTimestamp": timestamp
     });
   }
 
@@ -106,7 +114,6 @@ class UserSearch extends SearchDelegate {
                       splashColor: Color(0xFF27E9E1),
                       onTap: () async {
                         friendAddQuerySnapshot(username, snapshot.data[index]);
-                        friendAddQuerySnapshot(snapshot.data[index], username);
                         Navigator.push(
                             context,
                             MaterialPageRoute(

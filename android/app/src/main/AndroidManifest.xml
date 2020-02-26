@@ -16,8 +16,6 @@
         android:name="io.flutter.app.FlutterApplication"
         android:label="Talking Pigeon"
         android:icon="@mipmap/ic_launcher">
-        <meta-data android:name="com.google.firebase.messaging.default_notification_icon"
-        android:resource="@mipmap/ic_launcher" />
         <activity
             android:name=".MainActivity"
             android:launchMode="singleTop"
@@ -32,10 +30,20 @@
             <meta-data
                 android:name="io.flutter.app.android.SplashScreenUntilFirstFrame"
                 android:value="true" />
+            <meta-data
+                android:name="com.google.firebase.messaging.default_notification_icon"
+                android:resource="@drawable/ic_notification" />
+            <meta-data
+                android:name="com.google.firebase.messaging.default_notification_color"
+                android:resource="@color/colorAccent" />
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
+             <intent-filter>
+      <action android:name="FLUTTER_NOTIFICATION_CLICK" />
+      <category android:name="android.intent.category.DEFAULT" />
+  </intent-filter>
         </activity>
     </application>
 </manifest>

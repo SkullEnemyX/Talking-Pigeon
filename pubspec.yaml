@@ -22,6 +22,7 @@ dependencies:
   image_picker:
   cached_network_image: ^2.0.0
   photo_view:
+  google_fonts:
 
 dev_dependencies:
   flutter_test:
