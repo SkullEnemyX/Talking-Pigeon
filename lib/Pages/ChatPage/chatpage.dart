@@ -4,12 +4,12 @@ import 'dart:io';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
-import 'package:photo_view/photo_view.dart';
+import 'package:talking_pigeon_x/Pages/ChatPage/friendsprofile.dart';
 import 'package:talking_pigeon_x/Pages/HomeScreen/chatscreen.dart';
+import 'package:talking_pigeon_x/Pages/Profile/ImageScreen.dart';
 //Used in case when the image needs to be uploaded to imgbb.
 
 class ChatPage extends StatefulWidget {
@@ -28,10 +28,19 @@ class ChatPage extends StatefulWidget {
 class _ChatPageState extends State<ChatPage> {
   Stream<QuerySnapshot> snap;
   StreamSubscription snapshotlastseen;
+  DocumentSnapshot lastDocument;
   @override
   void initState() {
     super.initState();
     textEditingController.clear();
+    listScrollController.addListener(() {
+      double maxscroll = listScrollController.position.maxScrollExtent;
+      double currentscroll = listScrollController.position.pixels;
+      double delta = MediaQuery.of(context).size.height * 0.20;
+      if (maxscroll - currentscroll <= delta) {
+        setState(() {});
+      }
+    });
     setState(() {
       snap = snapshotReturn();
       snapshotlastseen = _fetchInitDetails().listen((val) {
@@ -76,11 +85,14 @@ class _ChatPageState extends State<ChatPage> {
       var now = DateTime.now();
       var date = DateTime.fromMillisecondsSinceEpoch(int.parse(status));
       var diff = now.difference(date);
-      var formatHR = DateFormat("h:mm a");
-      var formatDAY = DateFormat("d/M/y");
-      if (diff.inDays < 1) {
+      var formatHR = DateFormat("hh:mm a");
+      var formatDAY = DateFormat("MMM dd, y");
+      if (diff.inDays < 1 &&
+          DateFormat("dd").format(now) == DateFormat("dd").format(date)) {
         return "last seen today at " + formatHR.format(date);
-      } else if (diff.inDays == 1) {
+      } else if (diff.inDays == 1 ||
+          int.parse(DateFormat("dd").format(date)) !=
+              int.parse(DateFormat("dd").format(now))) {
         return "last seen yesterday at " + formatHR.format(date);
       }
       return "last seen on " + formatDAY.format(date);
@@ -106,33 +118,59 @@ class _ChatPageState extends State<ChatPage> {
     return snap;
   }
 
+  bool _checkChangeInDate(int prevtimestamp, int curtimestamp) {
+    DateTime prevDate = DateTime.fromMillisecondsSinceEpoch(prevtimestamp);
+    DateTime curDate = DateTime.fromMillisecondsSinceEpoch(curtimestamp);
+    DateFormat dateFormat = DateFormat("d");
+    if (prevDate.difference(curDate).inDays >= 1 ||
+        int.parse(dateFormat.format(prevDate)) !=
+            int.parse(dateFormat.format(curDate))) {
+      return true;
+    }
+    return false;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: background,
       appBar: new AppBar(
         elevation: 0.0,
         backgroundColor: widget.background == Color(0XFF242424)
             ? widget.background
             : Colors.grey.shade100,
         primary: true,
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Text(
-              "${widget.frienduid}"
-                  .toString()
-                  .split(" ")[0], //Change Name to Friends name.
-              style: GoogleFonts.pTSans(
-                  fontSize: 25.0,
-                  color: widget.greet,
-                  fontWeight: FontWeight.w600),
+        title: InkWell(
+          onTap: () {
+            Navigator.of(context).push(MaterialPageRoute(
+                builder: (context) => UserProfile(
+                      username: widget.frienduid,
+                    )));
+          },
+          child: Container(
+            width: double.maxFinite,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(
+                  "${widget.frienduid}"
+                      .toString()
+                      .split(" ")[0], //Change Name to Friends name.
+                  style: TextStyle(
+                      fontSize: 25.0,
+                      color: widget.greet,
+                      fontWeight: FontWeight.w600),
+                ),
+                Text(
+                  lastSeen(status),
+                  style: TextStyle(
+                      color: greet,
+                      fontSize: 15.0,
+                      fontWeight: FontWeight.w400),
+                ),
+              ],
             ),
-            Text(
-              lastSeen(status),
-              style: TextStyle(
-                  color: greet, fontSize: 15.0, fontWeight: FontWeight.w400),
-            ),
-          ],
+          ),
         ),
         leading: new IconButton(
           icon: Icon(
@@ -156,17 +194,30 @@ class _ChatPageState extends State<ChatPage> {
               child: StreamBuilder(
                   stream: snap,
                   builder: (context, snapshot) {
-                    listMsg = [];
                     if (!snapshot.hasData)
                       return CircularProgressIndicator();
                     else {
-                      List<DocumentSnapshot> document = snapshot.data.documents;
+                      List<DocumentSnapshot> document =
+                          snapshot.data.documents ?? [];
                       return ListView.builder(
                           reverse: true,
-                          itemCount: snapshot.data.documents.length,
+                          itemCount: document.length,
                           controller: listScrollController,
                           itemBuilder: (context, i) {
                             try {
+                              if (document.length > 1) {
+                                if (i == document.length - 1) {
+                                  return buildColumnWithTime(document, i);
+                                } else if (i >= 1 &&
+                                    _checkChangeInDate(
+                                        int.parse(document[i]["timestamp"]),
+                                        int.parse(
+                                            document[i + 1]["timestamp"]))) {
+                                  return buildColumnWithTime(document, i);
+                                } else {
+                                  return buildColumn(document, i);
+                                }
+                              }
                               return Column(
                                 crossAxisAlignment: CrossAxisAlignment.stretch,
                                 children: <Widget>[
@@ -270,11 +321,13 @@ class _ChatPageState extends State<ChatPage> {
                             )),
                         controller: textEditingController,
                         keyboardType: TextInputType.multiline,
+                        enableSuggestions: true,
+                        autocorrect: true,
                         onFieldSubmitted: (message) => message != ""
                             ? sendMessage(message, 0, ImageSource.gallery)
                             : null,
                         textCapitalization: TextCapitalization.sentences,
-                        style: GoogleFonts.openSans(
+                        style: TextStyle(
                           color: widget.background == Color(0xFF242424)
                               ? widget.background
                               : widget.greet,
@@ -290,6 +343,64 @@ class _ChatPageState extends State<ChatPage> {
           ],
         ),
       ),
+    );
+  }
+
+  Column buildColumn(List<DocumentSnapshot> document, int i) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: <Widget>[
+        Bubble(
+          message: document[i]["content"],
+          notMe: document[i]["isMe"].compareTo(widget.name) == 0 ? false : true,
+          delivered: true,
+          sendername: document[i]["isMe"],
+          timestamp: document[i]["timestamp"],
+          methodVia: 0,
+          background: widget.background,
+          type: document[i]["isImage"] == true ? 1 : 0,
+        ),
+      ],
+    );
+  }
+
+  Column buildColumnWithTime(List<DocumentSnapshot> document, int i) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: <Widget>[
+        Center(
+          child: Container(
+            margin: const EdgeInsets.only(top: 8.0),
+            padding: const EdgeInsets.all(8.0),
+            decoration: BoxDecoration(
+                border: Border.all(color: greet, width: 0.5),
+                borderRadius: BorderRadius.circular(20.0)),
+            child: Text(
+              DateFormat("MMM dd, y").format(
+                DateTime.fromMillisecondsSinceEpoch(
+                  int.parse(document[i]["timestamp"]),
+                ),
+              ),
+              style: TextStyle(color: greet),
+            ),
+          ),
+        ),
+        SizedBox(
+          height: 10,
+        ),
+        Bubble(
+          message: document[i]["content"],
+          notMe: document[i]["isMe"].compareTo(widget.name) == 0 ? false : true,
+          delivered: true,
+          sendername: document[i]["isMe"],
+          timestamp: document[i]["timestamp"],
+          methodVia: 0,
+          background: widget.background,
+          type: document[i]["isImage"] == true ? 1 : 0,
+        ),
+      ],
     );
   }
 
@@ -392,14 +503,14 @@ class Bubble extends StatelessWidget {
     var format = new DateFormat('HH:mm a');
     var date = new DateTime.fromMicrosecondsSinceEpoch(timestamp * 1000);
     var time = '';
-    format = DateFormat(" d/M/y, h:mm a");
+    format = DateFormat("hh:mm a");
     time = format.format(date);
     return time;
   }
 
   @override
   Widget build(BuildContext context) {
-    final double radiusCircle = 20.0;
+    final double radiusCircle = 15.0;
     final bg = notMe
         ? background == Color(0XFF242424) ? Colors.white : Colors.grey.shade300
         : Color(0xFF27E9E1).withOpacity(0.7);
@@ -445,8 +556,9 @@ class Bubble extends StatelessWidget {
               Container(
                 margin: const EdgeInsets.only(
                     left: 10, top: 5.0, bottom: 5.0, right: 10.0),
-                padding: const EdgeInsets.all(10.0),
-                constraints: BoxConstraints(maxWidth: width, minWidth: 130.0),
+                padding: const EdgeInsets.only(
+                    top: 15.0, bottom: 10.0, right: 15.0, left: 15.0),
+                constraints: BoxConstraints(maxWidth: width, minWidth: 80.0),
                 decoration: BoxDecoration(
                   boxShadow: [
                     BoxShadow(
@@ -464,7 +576,7 @@ class Bubble extends StatelessWidget {
                     Padding(
                       padding: EdgeInsets.only(right: 0.0, bottom: 15.0),
                       child: Text(message,
-                          style: GoogleFonts.pTSans(
+                          style: TextStyle(
                               fontSize: 16.0,
                               color: notMe
                                   ? Colors.black
@@ -474,7 +586,8 @@ class Bubble extends StatelessWidget {
                     ),
                     Positioned(
                       bottom: 0.0,
-                      right: 0.0,
+                      left: notMe ? 0.0 : null,
+                      right: notMe ? null : 0.0,
                       child: Row(
                         children: <Widget>[
                           Text(readTimestamp(int.parse(timestamp)),
@@ -504,82 +617,5 @@ class Bubble extends StatelessWidget {
               ),
             ],
           );
-  }
-}
-
-class ImageScreen extends StatefulWidget {
-  final String message;
-  final Color background;
-  final String username;
-  final String timestamp;
-  ImageScreen(this.message,
-      {this.background = Colors.white, this.username, this.timestamp});
-
-  @override
-  _ImageScreenState createState() => _ImageScreenState();
-}
-
-class _ImageScreenState extends State<ImageScreen> {
-  String readTimestamp(int timestamp) {
-    var format = new DateFormat('HH:mm a');
-    var date = new DateTime.fromMicrosecondsSinceEpoch(timestamp * 1000);
-    var time = '';
-    format = DateFormat(" d/M/y, h:mm a");
-    time = format.format(date);
-    return time;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        elevation: 0.0,
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Text(
-              "${widget.username}", //Change Name to Friends name.
-              style: GoogleFonts.pTSans(
-                  fontSize: 25.0,
-                  color: background == Color(0xFF242424)
-                      ? Colors.white
-                      : Colors.black,
-                  fontWeight: FontWeight.w600),
-            ),
-            Text(
-              readTimestamp(int.parse(widget.timestamp)),
-              style: TextStyle(
-                  color: background == Color(0xFF242424)
-                      ? Colors.white
-                      : Colors.black,
-                  fontSize: 15.0,
-                  fontWeight: FontWeight.w400),
-            ),
-          ],
-        ),
-        backgroundColor:
-            background == Color(0xFF242424) ? Colors.black : Colors.white,
-        leading: IconButton(
-            icon: Icon(
-              Icons.arrow_back,
-              color:
-                  background == Color(0xFF242424) ? Colors.white : Colors.black,
-            ),
-            onPressed: () {
-              Navigator.pop(context);
-            }),
-      ),
-      body: Container(
-        child: PhotoView(
-          backgroundDecoration: BoxDecoration(
-              color: background == Color(0xFF242424)
-                  ? Colors.black
-                  : Colors.white),
-          imageProvider: CachedNetworkImageProvider(widget.message),
-          minScale: PhotoViewComputedScale.contained,
-          maxScale: PhotoViewComputedScale.covered,
-        ),
-      ),
-    );
   }
 }

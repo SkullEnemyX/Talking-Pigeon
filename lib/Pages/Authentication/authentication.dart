@@ -27,7 +27,7 @@ class Userauthentication {
     return "${_auth.uid}";
   }
 
-  logout(UserData userdata) async {
-    FirebaseAuth.instance.signOut();
+  logout() async {
+    await FirebaseAuth.instance.signOut();
   }
 }

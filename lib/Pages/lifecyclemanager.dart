@@ -28,8 +28,7 @@ class _LifeCycleManagerState extends State<LifeCycleManager>
   void didChangeAppLifecycleState(AppLifecycleState state) async {
     super.didChangeAppLifecycleState(state);
     if (widget.username != "") {
-      if (state == AppLifecycleState.paused ||
-          state == AppLifecycleState.inactive) {
+      if (state == AppLifecycleState.inactive) {
         await Firestore.instance
             .collection("Users")
             .document(widget.username)
