@@ -5,9 +5,7 @@ import 'package:talking_pigeon_x/Pages/ChatPage/chatpage.dart';
 
 class UserSearch extends SearchDelegate {
   final String username;
-  final Color greet;
-  final Color background;
-  UserSearch(this.username, this.greet, this.background);
+  UserSearch(this.username);
   DocumentReference reference = Firestore.instance.document("People/People");
   //Function to return a common GROUPID, the same function already exists on the chatscreen page.
   returnGroupId(String myid, String friendid) {
@@ -119,8 +117,6 @@ class UserSearch extends SearchDelegate {
                             MaterialPageRoute(
                                 builder: (context) => ChatPage(
                                       name: username,
-                                      greet: greet,
-                                      background: background,
                                       frienduid: snapshot.data[index],
                                     )));
                       },
@@ -181,8 +177,6 @@ class UserSearch extends SearchDelegate {
                             MaterialPageRoute(
                                 builder: (context) => ChatPage(
                                       name: username,
-                                      greet: greet,
-                                      background: background,
                                       frienduid: snapshot.data[index],
                                     )));
                       },
@@ -212,4 +206,19 @@ class UserSearch extends SearchDelegate {
           return Container();
         });
   }
+
+  // @override
+  // ThemeData appBarTheme(BuildContext context) {
+  //   final ThemeData themeData = Theme.of(context);
+  //   return themeData.copyWith(
+  //       primaryColor: background,
+  //       accentColor: Colors.teal,
+  //       inputDecorationTheme: InputDecorationTheme(
+  //         hintStyle: Theme.of(context).textTheme.title.copyWith(color: greet),
+  //       ),
+  //       iconTheme: Theme.of(context).iconTheme.copyWith(
+  //           color: background == Color(0xff242424) ? Colors.white : background),
+  //       textTheme:
+  //           themeData.textTheme.copyWith(title: TextStyle(color: greet)));
+  // }
 }

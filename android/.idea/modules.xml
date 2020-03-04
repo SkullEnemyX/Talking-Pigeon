@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/android.iml" filepath="$PROJECT_DIR$/android.iml" />
+      <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
+      <module fileurl="file://D:/Apps/flutter/.pub-cache/hosted/pub.dartlang.org/cloud_firestore-0.13.4/android/cloud_firestore.iml" filepath="D:/Apps/flutter/.pub-cache/hosted/pub.dartlang.org/cloud_firestore-0.13.4/android/cloud_firestore.iml" />
+      <module fileurl="file://D:/Apps/flutter/.pub-cache/hosted/pub.dartlang.org/cloud_firestore_web-0.1.1/android/cloud_firestore_web.iml" filepath="D:/Apps/flutter/.pub-cache/hosted/pub.dartlang.org/cloud_firestore_web-0.1.1/android/cloud_firestore_web.iml" />
+      <module fileurl="file://D:/Apps/flutter/.pub-cache/hosted/pub.dartlang.org/firebase_auth-0.11.1+12/android/firebase_auth.iml" filepath="D:/Apps/flutter/.pub-cache/hosted/pub.dartlang.org/firebase_auth-0.11.1+12/android/firebase_auth.iml" />
+      <module fileurl="file://D:/Apps/flutter/.pub-cache/hosted/pub.dartlang.org/firebase_core-0.4.4+2/android/firebase_core.iml" filepath="D:/Apps/flutter/.pub-cache/hosted/pub.dartlang.org/firebase_core-0.4.4+2/android/firebase_core.iml" />
+      <module fileurl="file://D:/Apps/flutter/.pub-cache/hosted/pub.dartlang.org/firebase_core_web-0.1.1+2/android/firebase_core_web.iml" filepath="D:/Apps/flutter/.pub-cache/hosted/pub.dartlang.org/firebase_core_web-0.1.1+2/android/firebase_core_web.iml" />
+      <module fileurl="file://D:/Apps/flutter/.pub-cache/hosted/pub.dartlang.org/firebase_messaging-6.0.12/android/firebase_messaging.iml" filepath="D:/Apps/flutter/.pub-cache/hosted/pub.dartlang.org/firebase_messaging-6.0.12/android/firebase_messaging.iml" />
+      <module fileurl="file://D:/Apps/flutter/.pub-cache/hosted/pub.dartlang.org/flutter_plugin_android_lifecycle-1.0.5/android/flutter_plugin_android_lifecycle.iml" filepath="D:/Apps/flutter/.pub-cache/hosted/pub.dartlang.org/flutter_plugin_android_lifecycle-1.0.5/android/flutter_plugin_android_lifecycle.iml" />
+      <module fileurl="file://D:/Apps/flutter/.pub-cache/hosted/pub.dartlang.org/image_cropper-1.2.1/android/image_cropper.iml" filepath="D:/Apps/flutter/.pub-cache/hosted/pub.dartlang.org/image_cropper-1.2.1/android/image_cropper.iml" />
+      <module fileurl="file://D:/Apps/flutter/.pub-cache/hosted/pub.dartlang.org/image_picker-0.6.3+1/android/image_picker.iml" filepath="D:/Apps/flutter/.pub-cache/hosted/pub.dartlang.org/image_picker-0.6.3+1/android/image_picker.iml" />
+      <module fileurl="file://D:/Apps/flutter/.pub-cache/hosted/pub.dartlang.org/path_provider-1.6.0/android/path_provider.iml" filepath="D:/Apps/flutter/.pub-cache/hosted/pub.dartlang.org/path_provider-1.6.0/android/path_provider.iml" />
+      <module fileurl="file://D:/Apps/flutter/.pub-cache/hosted/pub.dartlang.org/shared_preferences-0.5.6+2/android/shared_preferences.iml" filepath="D:/Apps/flutter/.pub-cache/hosted/pub.dartlang.org/shared_preferences-0.5.6+2/android/shared_preferences.iml" />
+      <module fileurl="file://D:/Apps/flutter/.pub-cache/hosted/pub.dartlang.org/shared_preferences_macos-0.0.1+4/android/shared_preferences_macos.iml" filepath="D:/Apps/flutter/.pub-cache/hosted/pub.dartlang.org/shared_preferences_macos-0.0.1+4/android/shared_preferences_macos.iml" />
+      <module fileurl="file://D:/Apps/flutter/.pub-cache/hosted/pub.dartlang.org/shared_preferences_web-0.1.2+3/android/shared_preferences_web.iml" filepath="D:/Apps/flutter/.pub-cache/hosted/pub.dartlang.org/shared_preferences_web-0.1.2+3/android/shared_preferences_web.iml" />
+      <module fileurl="file://D:/Apps/flutter/.pub-cache/hosted/pub.dartlang.org/sqflite-1.2.0/android/sqflite.iml" filepath="D:/Apps/flutter/.pub-cache/hosted/pub.dartlang.org/sqflite-1.2.0/android/sqflite.iml" />
+    </modules>
+  </component>
+</project>

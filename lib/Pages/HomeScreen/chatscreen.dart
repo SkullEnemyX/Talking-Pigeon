@@ -1,20 +1,17 @@
 import 'dart:io';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:google_nav_bar/google_nav_bar.dart';
-import 'package:line_icons/line_icons.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/intl.dart';
 import 'package:talking_pigeon_x/Pages/Authentication/authentication.dart';
 import 'package:talking_pigeon_x/Pages/Authentication/sign-in.dart';
 import 'package:talking_pigeon_x/Pages/ChatPage/chatpage.dart';
+import 'package:talking_pigeon_x/Pages/HomeScreen/usersearch.dart';
 import 'package:talking_pigeon_x/Pages/Profile/profile.dart';
+import 'package:talking_pigeon_x/Pages/widgets/animated_bottombar.dart';
 import 'package:unicorndial/unicorndial.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-
-var globalUsername;
-Color greet = Color(0xff242424);
-Color background = Colors.white;
 
 class FriendData {
   String username;
@@ -25,7 +22,8 @@ class FriendData {
 
 class ChatScreen extends StatefulWidget {
   final String username;
-  ChatScreen({Key key, this.username}) : super(key: key);
+  final bool darkThemeEnabled;
+  ChatScreen({Key key, this.username, this.darkThemeEnabled}) : super(key: key);
   @override
   _ChatScreenState createState() => _ChatScreenState();
 }
@@ -56,7 +54,6 @@ class _ChatScreenState extends State<ChatScreen> {
   void initState() {
     super.initState();
     _initx();
-    _addNavBarButtons();
     //insertUnicornButtons();
     _firebaseMessaging.configure(
         onMessage: (Map<String, dynamic> message) async {
@@ -68,8 +65,6 @@ class _ChatScreenState extends State<ChatScreen> {
               builder: (context) => ChatPage(
                     name: widget.username,
                     frienduid: message['data']['sendername'],
-                    greet: greet,
-                    background: background,
                   )));
       //print(message);
     }, onResume: (Map<String, dynamic> message) async {
@@ -80,8 +75,6 @@ class _ChatScreenState extends State<ChatScreen> {
               builder: (context) => ChatPage(
                     name: widget.username,
                     frienduid: message['data']['sendername'],
-                    greet: greet,
-                    background: background,
                   )));
       //print(message);
     });
@@ -89,7 +82,6 @@ class _ChatScreenState extends State<ChatScreen> {
 
   _initx() async {
     fetchTime();
-    darkTheme();
     streamOfFriends = _fetchFromFriendsCollection();
     await Firestore.instance
         .document("Users/${widget.username}")
@@ -192,7 +184,7 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   //Returns a widget that formats the last sent message.
-  Widget formatLastMessage(String string, TextStyle style, Color greet) {
+  Widget formatLastMessage(String string, TextStyle style) {
     if (string.isEmpty) {
       return Text(
         "*No new messages*",
@@ -203,7 +195,7 @@ class _ChatScreenState extends State<ChatScreen> {
         children: <Widget>[
           Icon(
             Icons.image,
-            color: greet,
+            color: Theme.of(context).iconTheme.color,
           ),
           SizedBox(
             width: 5.0,
@@ -233,7 +225,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Widget _buildBody(int selection) {
     return Container(
-      color: background,
+      color: Theme.of(context).backgroundColor,
       child: new Column(
         children: <Widget>[
           new Padding(padding: EdgeInsets.only(top: 10.0)),
@@ -249,7 +241,7 @@ class _ChatScreenState extends State<ChatScreen> {
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 25.0,
-                      color: greet,
+                      color: Theme.of(context).textTheme.title.color,
                     ),
                   ),
                   new Padding(
@@ -292,28 +284,29 @@ class _ChatScreenState extends State<ChatScreen> {
                                                         name: widget.username,
                                                         frienduid:
                                                             friendUsername,
-                                                        greet: greet,
-                                                        background: background,
                                                       )));
                                         },
                                         title: Text(
                                           friendUsername,
                                           style: TextStyle(
-                                              color: greet,
+                                              color: Theme.of(context)
+                                                  .textTheme
+                                                  .title
+                                                  .color,
                                               fontSize: 20.0,
                                               fontWeight: FontWeight.bold),
                                         ),
                                         subtitle: Container(
                                             padding: EdgeInsets.only(top: 5.0),
                                             child: formatLastMessage(
-                                                documents.isNotEmpty
-                                                    ? documents[0]["content"]
-                                                    : "*no new messages*",
-                                                TextStyle(
-                                                  color: Colors.grey,
-                                                  fontSize: 15.0,
-                                                ),
-                                                greet)),
+                                              documents.isNotEmpty
+                                                  ? documents[0]["content"]
+                                                  : "*no new messages*",
+                                              TextStyle(
+                                                color: Colors.grey,
+                                                fontSize: 15.0,
+                                              ),
+                                            )),
                                         trailing: snapshot
                                                 .data.documents.isEmpty
                                             ? Text(" ")
@@ -325,8 +318,12 @@ class _ChatScreenState extends State<ChatScreen> {
                                                             ""))
                                                     : "",
                                                 style: TextStyle(
-                                                    color: greet,
-                                                    fontSize: 13.0),
+                                                  color: Theme.of(context)
+                                                      .textTheme
+                                                      .title
+                                                      .color,
+                                                  fontSize: 13.0,
+                                                ),
                                               ),
                                         leading: Container(
                                           decoration: BoxDecoration(
@@ -337,7 +334,8 @@ class _ChatScreenState extends State<ChatScreen> {
                                               shape: BoxShape.circle),
                                           child: new CircleAvatar(
                                             radius: 25.0,
-                                            backgroundColor: background,
+                                            backgroundColor: Theme.of(context)
+                                                .backgroundColor,
                                             foregroundColor: Color(0xFF27E9E1),
                                             child: Text(
                                               fetchInitials(friendUsername),
@@ -378,33 +376,33 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
-  void darkTheme() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    String _theme = (prefs.getString("theme") ?? "Light");
-    print(_theme);
-    setState(() {
-      if (_theme.compareTo("Dark") == 0) {
-        greet = Color(0xFFFFFFFF);
-        background = Color(0xFF242424);
-        theme = "Light Theme";
-        gvalue = 1;
-      } else {
-        greet = Color(0xFF242424);
-        background = Color(0xFFFFFFF);
-        theme = "Dark Theme";
-        gvalue = 0;
-      }
-    });
-  }
+  // void darkTheme() async {
+  //   SharedPreferences prefs = await SharedPreferences.getInstance();
+  //   String _theme = (prefs.getString("theme") ?? "Light");
+  //   print(_theme);
+  //   setState(() {
+  //     if (_theme.compareTo("Dark") == 0) {
+  //       greet = Colors.white;
+  //       background = Color(0xFF242424);
+  //       theme = "Light Theme";
+  //       gvalue = 1;
+  //     } else {
+  //       greet = Color(0xFF242424);
+  //       background = Colors.white;
+  //       theme = "Dark Theme";
+  //       gvalue = 0;
+  //     }
+  //   });
+  // }
 
   void menuList(String value) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     if (value == 'a') {
-      darkTheme();
-      String _theme = (prefs.getString("theme") ?? "Light");
-      _theme.compareTo("Light") == 0
-          ? prefs.setString("theme", "Dark")
-          : prefs.setString("theme", "Light");
+      // darkTheme();
+      // String _theme = (prefs.getString("theme") ?? "Light");
+      // _theme.compareTo("Light") == 0
+      //     ? prefs.setString("theme", "Dark")
+      //     : prefs.setString("theme", "Light");
     } else if (value == 'b') {
       userAuth.logout();
       prefs.setString('username', '');
@@ -416,204 +414,35 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
-  // insertUnicornButtons() {
-  //   childButtons.add(UnicornButton(
-  //       hasLabel: true,
-  //       labelText: "Create a team",
-  //       currentButton: FloatingActionButton(
-  //         heroTag: "train",
-  //         backgroundColor: Colors.redAccent,
-  //         mini: true,
-  //         child: Icon(Icons.group),
-  //         onPressed: () {
-  //           showDialog(
-  //               context: context,
-  //               builder: (BuildContext context) {
-  //                 return AlertDialog(
-  //                   title: Text("What is your team called?"),
-  //                   content: Column(
-  //                     mainAxisSize: MainAxisSize.min,
-  //                     children: <Widget>[
-  //                       TextField(
-  //                         controller: textEditingController,
-  //                         autofocus: true,
-  //                       ),
-  //                       SizedBox(
-  //                         height: 15.0,
-  //                       ),
-  //                       Row(
-  //                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-  //                         children: <Widget>[
-  //                           Material(
-  //                             color: Colors.transparent,
-  //                             child: InkWell(
-  //                               onTap: () {
-  //                                 Navigator.of(context).pop();
-  //                                 textEditingController.clear();
-  //                               },
-  //                               child: Container(
-  //                                 padding: const EdgeInsets.symmetric(
-  //                                     vertical: 8.0, horizontal: 12.0),
-  //                                 decoration: BoxDecoration(
-  //                                     color: Colors.grey.shade300,
-  //                                     borderRadius:
-  //                                         BorderRadius.circular(12.0)),
-  //                                 child: Text(
-  //                                   "Cancel",
-  //                                   style: TextStyle(
-  //                                     color: greet,
-  //                                     fontSize: 15.0,
-  //                                   ),
-  //                                 ),
-  //                               ),
-  //                             ),
-  //                           ),
-  //                           Material(
-  //                             color: Colors.transparent,
-  //                             child: InkWell(
-  //                               onTap: () {
-  //                                 Navigator.of(context).pop();
-  //                                 String groupId = DateTime.now()
-  //                                     .millisecondsSinceEpoch
-  //                                     .toString();
-  //                                 Navigator.of(context)
-  //                                     .push(MaterialPageRoute(
-  //                                         builder: (context) => GroupChat(
-  //                                               groupName: textEditingController
-  //                                                   .value.text,
-  //                                               admin: globalUsername,
-  //                                               greet: greet,
-  //                                               groupId: groupId,
-  //                                               background: background,
-  //                                               username: globalUsername,
-  //                                             )))
-  //                                     .whenComplete(() {
-  //                                   textEditingController.clear();
-  //                                 });
-  //                               },
-  //                               child: Container(
-  //                                 padding: const EdgeInsets.symmetric(
-  //                                     vertical: 8.0, horizontal: 12.0),
-  //                                 decoration: BoxDecoration(
-  //                                     color: Color(0xFF27E9E1),
-  //                                     borderRadius:
-  //                                         BorderRadius.circular(12.0)),
-  //                                 child: Text(
-  //                                   "Create",
-  //                                   style: TextStyle(
-  //                                     color: greet,
-  //                                     fontSize: 15.0,
-  //                                   ),
-  //                                 ),
-  //                               ),
-  //                             ),
-  //                           )
-  //                         ],
-  //                       )
-  //                     ],
-  //                   ),
-  //                 );
-  //               });
-  //         },
-  //       )));
-
-  //   childButtons.add(UnicornButton(
-  //       labelText: "Chat with a person",
-  //       hasLabel: true,
-  //       currentButton: FloatingActionButton(
-  //           heroTag: "plane",
-  //           backgroundColor: Colors.blue,
-  //           mini: true,
-  //           onPressed: () {
-  //             showSearch(
-  //                 context: context,
-  //                 delegate: UserSearch(widget.username, greet, background));
-  //           },
-  //           child: Icon(Icons.person))));
-
-  //   childButtons.add(UnicornButton(
-  //       labelText: "Flip theme",
-  //       hasLabel: true,
-  //       currentButton: FloatingActionButton(
-  //           heroTag: "planex",
-  //           backgroundColor: Colors.greenAccent,
-  //           mini: true,
-  //           onPressed: () {
-  //             darkTheme();
-  //           },
-  //           child: Icon(Icons.flip_to_front))));
-  // }
-  //PageController controller = PageController();
-  List<GButton> tabs = new List();
-  List<Color> colors = [
-    Colors.purple,
-    Colors.pink,
-    Colors.amber[600],
-    Colors.teal
-  ];
-
-  _addNavBarButtons() {
-    var padding = EdgeInsets.symmetric(horizontal: 12, vertical: 5);
-    double gap = 30;
-
-    tabs.add(GButton(
-      gap: gap,
-      iconActiveColor: Colors.purple,
-      iconColor: Colors.grey,
-      textColor: Colors.purple,
-      color: Colors.purple.withOpacity(.2),
-      iconSize: 24,
-      padding: padding,
-      icon: LineIcons.home,
-      // textStyle: t.textStyle,
-      text: 'Home',
-    ));
-
-    tabs.add(GButton(
-      gap: gap,
-      iconActiveColor: Colors.pink,
-      iconColor: Colors.grey,
-      textColor: Colors.pink,
-      color: Colors.pink.withOpacity(.2),
-      iconSize: 24,
-      padding: padding,
-      icon: LineIcons.heart_o,
-      // textStyle: t.textStyle,
-      text: 'Likes',
-    ));
-
-    tabs.add(GButton(
-      gap: gap,
-      iconActiveColor: Colors.amber[600],
-      iconColor: Colors.grey,
-      textColor: Colors.amber[600],
-      color: Colors.amber[600].withOpacity(.2),
-      iconSize: 24,
-      padding: padding,
-      icon: LineIcons.search,
-      // textStyle: t.textStyle,
-      text: 'Search',
-    ));
-
-    tabs.add(GButton(
-      gap: gap,
-      iconActiveColor: Colors.teal,
-      iconColor: Colors.grey,
-      textColor: Colors.teal,
-      color: Colors.teal.withOpacity(.2),
-      iconSize: 24,
-      padding: padding,
-      icon: LineIcons.user,
-      // textStyle: t.textStyle,
-      text: 'Profile',
-    ));
-  }
-
   @override
   void dispose() {
     textEditingController.dispose();
+
     super.dispose();
   }
+
+  final List<BarItem> barItems = [
+    BarItem(
+      text: "Personal",
+      iconData: Icons.chat_bubble_outline,
+      color: Colors.indigo,
+    ),
+    BarItem(
+      text: "Groups",
+      iconData: Icons.people,
+      color: Colors.pinkAccent,
+    ),
+    BarItem(
+      text: "Search",
+      iconData: Icons.search,
+      color: Colors.yellow.shade900,
+    ),
+    BarItem(
+      text: "Profile",
+      iconData: Icons.person_outline,
+      color: Colors.teal,
+    )
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -624,114 +453,59 @@ class _ChatScreenState extends State<ChatScreen> {
         index: selectedIndex,
         children: <Widget>[
           _buildBody(0),
-          _buildBody(0),
+          Container(
+            child: Center(
+              child: Text(
+                "Group Chat coming soon...",
+                style:
+                    TextStyle(color: Theme.of(context).textTheme.title.color),
+              ),
+            ),
+          ),
           Container(),
           Profile(
             username: widget.username,
+            darkThemeEnabled: widget.darkThemeEnabled,
           ),
         ],
       ),
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(color: background,
-            //borderRadius: BorderRadius.all(Radius.circular(100)),
-            boxShadow: [
-              BoxShadow(
-                  spreadRadius: -10,
-                  blurRadius: 60,
-                  color: Colors.black.withOpacity(.20),
-                  offset: Offset(0, 15))
-            ]),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 5.0, vertical: 5),
-          child: GNav(
-              tabs: tabs,
-              selectedIndex: selectedIndex,
-              onTabChange: (index) {
-                print(index);
-                setState(() {
-                  selectedIndex = index;
-                });
-              }),
-        ),
+      bottomNavigationBar: AnimatedBottomBar(
+        onBarTap: (index) {
+          setState(() {
+            selectedIndex = index;
+          });
+        },
+        barItems: barItems,
+        animationDuration: const Duration(milliseconds: 150),
+        barStyle: BarStyle(fontSize: 15.0, iconSize: 30.0),
       ),
-      // floatingActionButton: UnicornDialer(
-      //   childButtons: childButtons,
-      //   backgroundColor: Colors.transparent,
-      //   parentButtonBackground: Color(0xFF27E9E1),
-      //   parentButton: Icon(Icons.add),
-      //   orientation: UnicornOrientation.VERTICAL,
-      // ),
       appBar: new AppBar(
-        backgroundColor: background,
+        backgroundColor: Theme.of(context).appBarTheme.color,
         centerTitle: true,
         title: Text(
           "Talking Pigeon",
-          style: TextStyle(color: greet, fontSize: 28.0),
+          style: TextStyle(
+            color: Theme.of(context).textTheme.title.color,
+            fontSize: 25.0,
+          ),
         ),
         elevation: 0.0,
         actions: <Widget>[
-          new PopupMenuButton<String>(
-            onSelected: menuList,
-            color: background,
-            icon: new Icon(
-              Icons.more_vert,
-              color: Color(0xFF27E9E1),
-              size: 30.0,
-            ),
-            itemBuilder: (BuildContext context) => <PopupMenuItem<String>>[
-              PopupMenuItem<String>(
-                value: 'a',
-                child: ListTile(
-                  leading: Icon(Icons.edit,
-                      color: background == Color(0xff242424)
-                          ? Colors.white
-                          : Colors.black),
-                  title: Text(
-                    "$theme",
-                    style: TextStyle(
-                      color: background == Color(0xff242424)
-                          ? Colors.white
-                          : Colors.black,
-                    ),
+          IconButton(
+              icon: Icon(
+                Icons.search,
+                size: 30.0,
+                color: Color(0xFF27E9E1),
+              ),
+              onPressed: () {
+                showSearch(
+                  context: context,
+                  delegate: UserSearch(
+                    widget.username,
                   ),
-                ),
-              ),
-              const PopupMenuItem<String>(
-                value: 'b',
-                child: ListTile(
-                  leading: Icon(
-                    Icons.cancel,
-                  ),
-                  title: Text("Sign Out"),
-                ),
-              ),
-              const PopupMenuItem<String>(
-                value: 'c',
-                child: ListTile(
-                  leading: Icon(Icons.exit_to_app),
-                  title: Text("Exit"),
-                ),
-              ),
-            ],
-          ),
+                );
+              })
         ],
-        // actions: <Widget>[
-        //   new IconButton(
-        //     icon: new Icon(
-        //       Icons.search,
-        //       size: 30.0,
-        //     ),
-        //     onPressed: () {
-        //       showSearch(
-        //           context: context,
-        //           delegate: UserSearch(widget.username, greet, background));
-        //     },
-        //     color: Color(0xFF27E9E1),
-        //   ),
-        //   Padding(
-        //     padding: EdgeInsets.only(right: 5.0),
-        //   ),
-        // ],
       ),
     );
   }

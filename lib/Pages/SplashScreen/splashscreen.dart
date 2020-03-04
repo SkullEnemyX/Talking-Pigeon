@@ -16,12 +16,8 @@ class _SplashScreenState extends State<SplashScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return new MaterialApp(
-      title: "The Talking Pigeon",
-      debugShowCheckedModeBanner: false,
-      home: SplashWallpaper(
-        username: '',
-      ),
+    return SplashWallpaper(
+      username: '',
     );
   }
 }

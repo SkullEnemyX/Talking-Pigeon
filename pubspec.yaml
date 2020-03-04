@@ -11,20 +11,19 @@ dependencies:
     sdk: flutter
 
   cupertino_icons: ^0.1.2
-  shared_preferences:
+  shared_preferences: ^0.5.6+2
   flutter_spinkit:
-  intl:
   firebase_auth: ^0.11.1+7
-  cloud_firestore: ^0.12.7
-  firebase_messaging: ^5.1.0
+  cloud_firestore: ^0.13.4
+  firebase_messaging: ^6.0.12
   unicorndial:
   http:
+  intl:
   image_picker:
   cached_network_image: any
   photo_view:
   progressive_image:
-  google_nav_bar:
-  line_icons:
+  image_cropper:
 
 dev_dependencies:
   flutter_test:

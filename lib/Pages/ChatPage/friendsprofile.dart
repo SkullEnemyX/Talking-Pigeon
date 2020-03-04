@@ -2,7 +2,6 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:talking_pigeon_x/Pages/HomeScreen/chatscreen.dart';
 
 class UserProfile extends StatefulWidget {
   final String username;
@@ -59,12 +58,10 @@ class _UserProfileState extends State<UserProfile> {
                 documentSnapshot["status_for_everyone"] ??
                     "I am using Talking Pigeon.";
             return Scaffold(
-              backgroundColor: background,
+              backgroundColor: Theme.of(context).backgroundColor,
               appBar: AppBar(
                 elevation: 0.0,
-                backgroundColor: background == Color(0XFF242424)
-                    ? background
-                    : Colors.grey.shade100,
+                backgroundColor: Theme.of(context).appBarTheme.color,
                 primary: true,
                 title: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -74,14 +71,15 @@ class _UserProfileState extends State<UserProfile> {
                           .toString()
                           .split(" ")[0], //Change Name to Friends name.
                       style: TextStyle(
-                          fontSize: 25.0,
-                          color: greet,
-                          fontWeight: FontWeight.w600),
+                        fontSize: 25.0,
+                        color: Theme.of(context).textTheme.title.color,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                     Text(
                       lastSeen(documentSnapshot["status"]),
                       style: TextStyle(
-                          color: greet,
+                          color: Theme.of(context).textTheme.title.color,
                           fontSize: 15.0,
                           fontWeight: FontWeight.w400),
                     ),
@@ -130,9 +128,7 @@ class _UserProfileState extends State<UserProfile> {
                       Text(
                         "@" + widget.username,
                         style: TextStyle(
-                          color: background == Color(0xff242424)
-                              ? Colors.white
-                              : Colors.black,
+                          color: Theme.of(context).textTheme.title.color,
                           fontSize: 25.0,
                         ),
                       ),
@@ -158,7 +154,7 @@ class _UserProfileState extends State<UserProfile> {
                           child: Text(
                             "Status",
                             style: TextStyle(
-                              color: greet,
+                              color: Theme.of(context).textTheme.title.color,
                               fontSize: 25.0,
                               fontWeight: FontWeight.w500,
                             ),
@@ -175,16 +171,16 @@ class _UserProfileState extends State<UserProfile> {
                               vertical: 15.0,
                             ),
                             decoration: BoxDecoration(
-                              color: background == Color(0xff242424)
-                                  ? Colors.grey.shade800
-                                  : Colors.grey.shade100,
+                              color: Theme.of(context).cardColor,
                               borderRadius: BorderRadius.circular(20.0),
-                              border: background != Color(0xff242424)
+                              border: Theme.of(context).backgroundColor !=
+                                      Color(0xff242424)
                                   ? Border.all(
                                       color: Colors.grey.shade200,
                                     )
                                   : null,
-                              boxShadow: background != Color(0xff242424)
+                              boxShadow: Theme.of(context).backgroundColor !=
+                                      Color(0xff242424)
                                   ? [
                                       BoxShadow(
                                         blurRadius: 2.0,
@@ -202,14 +198,12 @@ class _UserProfileState extends State<UserProfile> {
                               textAlignVertical: TextAlignVertical.center,
                               controller: _textEditingController,
                               style: TextStyle(
-                                color: background == Color(0xff242424)
-                                    ? Colors.white
-                                    : Colors.black,
+                                color: Theme.of(context).textTheme.title.color,
                                 fontSize: 18.0,
                               ),
-                              maxLines: 1,
-                              maxLength: 50,
-                              expands: false,
+                              maxLines: 2,
+                              maxLength: 100,
+                              expands: true,
                               enableSuggestions: true,
                               decoration: InputDecoration(
                                 counter: Container(),

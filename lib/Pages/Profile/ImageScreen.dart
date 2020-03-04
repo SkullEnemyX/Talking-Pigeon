@@ -2,7 +2,6 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:photo_view/photo_view.dart';
-import 'package:talking_pigeon_x/Pages/HomeScreen/chatscreen.dart';
 
 class ImageScreen extends StatefulWidget {
   final String message;
@@ -37,31 +36,25 @@ class _ImageScreenState extends State<ImageScreen> {
             Text(
               "${widget.username}", //Change Name to Friends name.
               style: TextStyle(
-                  fontSize: 25.0,
-                  color: background == Color(0xFF242424)
-                      ? Colors.white
-                      : Colors.black,
-                  fontWeight: FontWeight.w600),
+                fontSize: 25.0,
+                color: Theme.of(context).textTheme.title.color,
+                fontWeight: FontWeight.w600,
+              ),
             ),
             Text(
               readTimestamp(int.parse(widget.timestamp)),
               style: TextStyle(
-                  color: background == Color(0xFF242424)
-                      ? Colors.white
-                      : Colors.black,
-                  fontSize: 15.0,
-                  fontWeight: FontWeight.w400),
+                color: Theme.of(context).textTheme.title.color,
+                fontSize: 15.0,
+                fontWeight: FontWeight.w400,
+              ),
             ),
           ],
         ),
-        backgroundColor:
-            background == Color(0xFF242424) ? Colors.black : Colors.white,
+        backgroundColor: Theme.of(context).backgroundColor,
         leading: IconButton(
-            icon: Icon(
-              Icons.arrow_back,
-              color:
-                  background == Color(0xFF242424) ? Colors.white : Colors.black,
-            ),
+            icon: Icon(Icons.arrow_back,
+                color: Theme.of(context).iconTheme.color),
             onPressed: () {
               Navigator.pop(context);
             }),
@@ -69,9 +62,8 @@ class _ImageScreenState extends State<ImageScreen> {
       body: Container(
         child: PhotoView(
           backgroundDecoration: BoxDecoration(
-              color: background == Color(0xFF242424)
-                  ? Colors.black
-                  : Colors.white),
+            color: Theme.of(context).backgroundColor,
+          ),
           imageProvider: CachedNetworkImageProvider(widget.message),
           minScale: PhotoViewComputedScale.contained,
           maxScale: PhotoViewComputedScale.covered,

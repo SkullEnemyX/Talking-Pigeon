@@ -10,22 +10,13 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:talking_pigeon_x/Pages/Authentication/authentication.dart';
 import 'package:talking_pigeon_x/Pages/Authentication/sign-in.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:talking_pigeon_x/Pages/HomeScreen/chatscreen.dart';
+import 'package:talking_pigeon_x/Pages/Bloc/themebloc.dart';
+import 'package:talking_pigeon_x/Pages/global_configurations/config.dart';
 
 class Profile extends StatefulWidget {
-  final Color backgroundColor;
+  final bool darkThemeEnabled;
   final String username;
-  final Color textColor;
-  final String profilePic;
-  final String thumbnail;
-  final String fullname;
-  Profile(
-      {@required this.username,
-      this.backgroundColor,
-      this.textColor,
-      this.fullname,
-      this.profilePic,
-      this.thumbnail});
+  Profile({@required this.username, this.darkThemeEnabled});
   @override
   _ProfileState createState() => _ProfileState();
 }
@@ -40,14 +31,12 @@ class _ProfileState extends State<Profile> {
     Icons.edit,
     color: Colors.grey,
   );
-  bool isDarkTheme;
   Stream<QuerySnapshot> snapshot;
   Userauthentication userAuth = new Userauthentication();
   @override
   void initState() {
     super.initState();
     snapshot = readUserInfo(widget.username);
-    isDarkTheme = background == Color(0xff242424);
   }
 
   Stream<QuerySnapshot> readUserInfo(String username) {
@@ -56,6 +45,23 @@ class _ProfileState extends State<Profile> {
         .where("username", isEqualTo: username)
         .snapshots();
   }
+
+  // void darkTheme() async {
+  //   SharedPreferences prefs = await SharedPreferences.getInstance();
+  //   String _theme = (prefs.getString("theme") ?? "Light");
+  //   print(_theme);
+  //   setState(() {
+  //     if (_theme.compareTo("Dark") == 0) {
+  //       greet = Colors.white;
+  //       background = Color(0xFF242424);
+  //       prefs.setString("theme", "Light");
+  //     } else {
+  //       greet = Color(0xFF242424);
+  //       background = Colors.white;
+  //       prefs.setString("theme", "Dark");
+  //     }
+  //   });
+  // }
 
   void uploadProfilePic() async {
     var url;
@@ -91,11 +97,16 @@ class _ProfileState extends State<Profile> {
   }
 
   @override
+  void dispose() {
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
         resizeToAvoidBottomPadding: false,
         resizeToAvoidBottomInset: false,
-        backgroundColor: background,
+        backgroundColor: Theme.of(context).backgroundColor,
         body: StreamBuilder<QuerySnapshot>(
             stream: snapshot,
             builder: (context, snapshot) {
@@ -136,9 +147,7 @@ class _ProfileState extends State<Profile> {
                         Text(
                           "@" + widget.username,
                           style: TextStyle(
-                            color: background == Color(0xff242424)
-                                ? Colors.white
-                                : Colors.black,
+                            color: Theme.of(context).textTheme.title.color,
                             fontSize: 25.0,
                           ),
                         ),
@@ -164,9 +173,7 @@ class _ProfileState extends State<Profile> {
                             child: Text(
                               "Status",
                               style: TextStyle(
-                                color: background == Color(0xff242424)
-                                    ? Colors.white
-                                    : Colors.black,
+                                color: Theme.of(context).textTheme.title.color,
                                 fontSize: 25.0,
                                 fontWeight: FontWeight.w500,
                               ),
@@ -183,16 +190,16 @@ class _ProfileState extends State<Profile> {
                                 vertical: 15.0,
                               ),
                               decoration: BoxDecoration(
-                                color: background == Color(0xff242424)
-                                    ? Colors.grey.shade800
-                                    : Colors.grey.shade100,
+                                color: Theme.of(context).cardColor,
                                 borderRadius: BorderRadius.circular(20.0),
-                                border: background != Color(0xff242424)
+                                border: Theme.of(context).backgroundColor !=
+                                        Color(0xff242424)
                                     ? Border.all(
                                         color: Colors.grey.shade200,
                                       )
                                     : null,
-                                boxShadow: background != Color(0xff242424)
+                                boxShadow: Theme.of(context).backgroundColor !=
+                                        Color(0xff242424)
                                     ? [
                                         BoxShadow(
                                           blurRadius: 2.0,
@@ -216,9 +223,8 @@ class _ProfileState extends State<Profile> {
                                             offset: _textEditingController
                                                 .text.length))),
                                 style: TextStyle(
-                                  color: background == Color(0xff242424)
-                                      ? Colors.white
-                                      : Colors.black,
+                                  color:
+                                      Theme.of(context).textTheme.title.color,
                                   fontSize: 18.0,
                                 ),
                                 onChanged: (content) {
@@ -272,6 +278,39 @@ class _ProfileState extends State<Profile> {
                             ),
                           ),
                         ),
+                        SizedBox(
+                          height: 20.0,
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.only(
+                            top: 10.0,
+                            left: 30.0,
+                          ),
+                          child: Row(
+                            children: <Widget>[
+                              Text(
+                                "Dark Mode",
+                                style: TextStyle(
+                                  color:
+                                      Theme.of(context).textTheme.title.color,
+                                  fontSize: 25.0,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              SizedBox(
+                                width: 10.0,
+                              ),
+                              CupertinoSwitch(
+                                value: widget.darkThemeEnabled,
+                                onChanged: (val) {
+                                  bloc.changeTheme(val);
+                                  Config.prefs
+                                      .setBool(Config.darkModePrefs, val);
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
                       ],
                     ),
                     Expanded(child: SizedBox()),
@@ -291,7 +330,8 @@ class _ProfileState extends State<Profile> {
                       },
                       child: Material(
                         borderRadius: BorderRadius.circular(20.0),
-                        color: background == Color(0xff242424)
+                        color: Theme.of(context).backgroundColor ==
+                                Color(0xff242424)
                             ? Colors.white12
                             : Colors.white70,
                         child: Container(
@@ -299,7 +339,8 @@ class _ProfileState extends State<Profile> {
                           width: 150.0,
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(20.0),
-                            boxShadow: background != Color(0xff242424)
+                            boxShadow: Theme.of(context).backgroundColor !=
+                                    Color(0xff242424)
                                 ? [
                                     BoxShadow(
                                       blurRadius: 5.0,
@@ -308,7 +349,8 @@ class _ProfileState extends State<Profile> {
                                     ),
                                   ]
                                 : null,
-                            color: background == Color(0xff242424)
+                            color: Theme.of(context).backgroundColor ==
+                                    Color(0xff242424)
                                 ? Colors.white12
                                 : Colors.white70,
                           ),
@@ -331,10 +373,7 @@ class _ProfileState extends State<Profile> {
                         child: Text(
                           "Made with ❤ in India",
                           style: TextStyle(
-                            color: background == Color(0xff242424)
-                                ? Colors.white
-                                : Colors.black,
-                          ),
+                              color: Theme.of(context).textTheme.title.color),
                         ),
                       ),
                     ),
