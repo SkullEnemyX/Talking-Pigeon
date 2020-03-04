@@ -135,7 +135,7 @@ class _ChatScreenState extends State<ChatScreen> {
       if (diff.inDays == 1) {
         time = 'Yesterday';
       } else {
-        format = DateFormat("d/M/y");
+        format = DateFormat("dd/M/y");
         time = format.format(date);
       }
     }
@@ -277,14 +277,14 @@ class _ChatScreenState extends State<ChatScreen> {
                                       return ListTile(
                                         onTap: () {
                                           Navigator.push(
-                                              context,
-                                              MaterialPageRoute(
-                                                  builder: (context) =>
-                                                      ChatPage(
-                                                        name: widget.username,
-                                                        frienduid:
-                                                            friendUsername,
-                                                      )));
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (context) => ChatPage(
+                                                name: widget.username,
+                                                frienduid: friendUsername,
+                                              ),
+                                            ),
+                                          );
                                         },
                                         title: Text(
                                           friendUsername,
@@ -376,33 +376,9 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
-  // void darkTheme() async {
-  //   SharedPreferences prefs = await SharedPreferences.getInstance();
-  //   String _theme = (prefs.getString("theme") ?? "Light");
-  //   print(_theme);
-  //   setState(() {
-  //     if (_theme.compareTo("Dark") == 0) {
-  //       greet = Colors.white;
-  //       background = Color(0xFF242424);
-  //       theme = "Light Theme";
-  //       gvalue = 1;
-  //     } else {
-  //       greet = Color(0xFF242424);
-  //       background = Colors.white;
-  //       theme = "Dark Theme";
-  //       gvalue = 0;
-  //     }
-  //   });
-  // }
-
   void menuList(String value) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     if (value == 'a') {
-      // darkTheme();
-      // String _theme = (prefs.getString("theme") ?? "Light");
-      // _theme.compareTo("Light") == 0
-      //     ? prefs.setString("theme", "Dark")
-      //     : prefs.setString("theme", "Light");
     } else if (value == 'b') {
       userAuth.logout();
       prefs.setString('username', '');
@@ -433,11 +409,6 @@ class _ChatScreenState extends State<ChatScreen> {
       color: Colors.pinkAccent,
     ),
     BarItem(
-      text: "Search",
-      iconData: Icons.search,
-      color: Colors.yellow.shade900,
-    ),
-    BarItem(
       text: "Profile",
       iconData: Icons.person_outline,
       color: Colors.teal,
@@ -462,7 +433,6 @@ class _ChatScreenState extends State<ChatScreen> {
               ),
             ),
           ),
-          Container(),
           Profile(
             username: widget.username,
             darkThemeEnabled: widget.darkThemeEnabled,
@@ -480,14 +450,10 @@ class _ChatScreenState extends State<ChatScreen> {
         barStyle: BarStyle(fontSize: 15.0, iconSize: 30.0),
       ),
       appBar: new AppBar(
-        backgroundColor: Theme.of(context).appBarTheme.color,
         centerTitle: true,
         title: Text(
           "Talking Pigeon",
-          style: TextStyle(
-            color: Theme.of(context).textTheme.title.color,
-            fontSize: 25.0,
-          ),
+          style: TextStyle(fontSize: 30.0, fontWeight: FontWeight.w500),
         ),
         elevation: 0.0,
         actions: <Widget>[

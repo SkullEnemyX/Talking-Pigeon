@@ -30,6 +30,15 @@ class _ChatPageState extends State<ChatPage> {
   Stream<QuerySnapshot> snap;
   StreamSubscription snapshotlastseen;
   DocumentSnapshot lastDocument;
+  final TextEditingController textEditingController = TextEditingController();
+  List listMsg = [];
+  String msg;
+  String receiverToken = "";
+  String status = "";
+  String imageUrl = "";
+  String statusForEveryone = "";
+  final ScrollController listScrollController = new ScrollController();
+
   @override
   void initState() {
     super.initState();
@@ -49,6 +58,8 @@ class _ChatPageState extends State<ChatPage> {
         setState(() {
           status = db["status"] ?? " ";
           receiverToken = db["deviceId"] ?? " ";
+          imageUrl = db["thumbnail"];
+          statusForEveryone = db["status_for_everyone"];
         });
       });
     });
@@ -61,14 +72,6 @@ class _ChatPageState extends State<ChatPage> {
     snapshotlastseen.cancel();
   }
 
-  final TextEditingController textEditingController =
-      new TextEditingController();
-  List listMsg = [];
-  String msg;
-  String receiverToken = " ";
-  String status = " ";
-  final ScrollController listScrollController = new ScrollController();
-
   Stream<QuerySnapshot> _fetchInitDetails() {
     Stream<QuerySnapshot> snap = Firestore.instance
         .collection("Users")
@@ -79,7 +82,7 @@ class _ChatPageState extends State<ChatPage> {
 
   String lastSeen(String status) {
     if (status.compareTo("online") == 0 ||
-        status.compareTo(" ") == 0 ||
+        status.compareTo("") == 0 ||
         status == null) {
       return status;
     } else {
@@ -145,6 +148,10 @@ class _ChatPageState extends State<ChatPage> {
             Navigator.of(context).push(MaterialPageRoute(
                 builder: (context) => UserProfile(
                       username: widget.frienduid,
+                      imageUrl: imageUrl,
+                      lastseen: status,
+                      statusForEveryone: statusForEveryone,
+                      //status is the timestamp and statusforeveryone is the user's showoff msg.
                     )));
           },
           child: Container(
@@ -252,10 +259,12 @@ class _ChatPageState extends State<ChatPage> {
                   Container(
                     height: 45.0,
                     decoration: BoxDecoration(
-                        color: widget.greet != Color(0xFF242424)
-                            ? widget.greet
-                            : Colors.grey.shade300,
-                        borderRadius: BorderRadius.circular(50.0)),
+                      color: Theme.of(context).backgroundColor,
+                      borderRadius: BorderRadius.circular(50.0),
+                      border: Border.all(
+                        color: Theme.of(context).canvasColor,
+                      ),
+                    ),
                     child: Row(
                       children: <Widget>[
                         IconButton(
@@ -293,32 +302,38 @@ class _ChatPageState extends State<ChatPage> {
                       decoration: BoxDecoration(
                         color: Theme.of(context).backgroundColor,
                         borderRadius: new BorderRadius.circular(50.0),
+                        border:
+                            Border.all(color: Theme.of(context).canvasColor),
                       ),
                       child: new TextFormField(
                         textAlign: TextAlign.start,
                         decoration: new InputDecoration(
-                            filled: true,
-                            border: InputBorder.none,
-                            fillColor: Colors.transparent,
-                            hintText: "Type a message",
-                            hintStyle: Theme.of(context).textTheme.title,
-                            suffixIcon: IconButton(
-                              icon: Icon(
-                                Icons.send,
-                                size: 25.0,
-                              ),
-                              color: Theme.of(context).textTheme.title.color,
-                              disabledColor: Colors.grey,
-                              onPressed: () =>
-                                  textEditingController.value.text != ""
-                                      ? sendMessage(
-                                          textEditingController.value.text,
-                                          0,
-                                          ImageSource.gallery)
-                                      : null,
-                            )),
+                          filled: true,
+                          border: InputBorder.none,
+                          fillColor: Colors.transparent,
+                          hintText: "Type a message",
+                          hintStyle: TextStyle(
+                              fontSize: 15.0,
+                              color:
+                                  Theme.of(context).textTheme.subtitle.color),
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              Icons.send,
+                              size: 25.0,
+                            ),
+                            color: Theme.of(context).textTheme.title.color,
+                            disabledColor: Colors.grey,
+                            onPressed: () =>
+                                textEditingController.value.text != ""
+                                    ? sendMessage(
+                                        textEditingController.value.text,
+                                        0,
+                                        ImageSource.gallery)
+                                    : null,
+                          ),
+                        ),
                         controller: textEditingController,
-                        keyboardType: TextInputType.multiline,
+                        keyboardType: TextInputType.text,
                         enableSuggestions: true,
                         autocorrect: true,
                         onFieldSubmitted: (message) => message != ""

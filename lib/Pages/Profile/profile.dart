@@ -11,7 +11,6 @@ import 'package:talking_pigeon_x/Pages/Authentication/authentication.dart';
 import 'package:talking_pigeon_x/Pages/Authentication/sign-in.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:talking_pigeon_x/Pages/Bloc/themebloc.dart';
-import 'package:talking_pigeon_x/Pages/global_configurations/config.dart';
 
 class Profile extends StatefulWidget {
   final bool darkThemeEnabled;
@@ -33,6 +32,7 @@ class _ProfileState extends State<Profile> {
   );
   Stream<QuerySnapshot> snapshot;
   Userauthentication userAuth = new Userauthentication();
+  SharedPreferences prefs;
   @override
   void initState() {
     super.initState();
@@ -46,22 +46,10 @@ class _ProfileState extends State<Profile> {
         .snapshots();
   }
 
-  // void darkTheme() async {
-  //   SharedPreferences prefs = await SharedPreferences.getInstance();
-  //   String _theme = (prefs.getString("theme") ?? "Light");
-  //   print(_theme);
-  //   setState(() {
-  //     if (_theme.compareTo("Dark") == 0) {
-  //       greet = Colors.white;
-  //       background = Color(0xFF242424);
-  //       prefs.setString("theme", "Light");
-  //     } else {
-  //       greet = Color(0xFF242424);
-  //       background = Colors.white;
-  //       prefs.setString("theme", "Dark");
-  //     }
-  //   });
-  // }
+  setDarkTheme(bool val) async {
+    prefs = await SharedPreferences.getInstance();
+    prefs.setBool("DarkMode", val);
+  }
 
   void uploadProfilePic() async {
     var url;
@@ -94,11 +82,6 @@ class _ProfileState extends State<Profile> {
         throw e;
       }
     }
-  }
-
-  @override
-  void dispose() {
-    super.dispose();
   }
 
   @override
@@ -190,24 +173,11 @@ class _ProfileState extends State<Profile> {
                                 vertical: 15.0,
                               ),
                               decoration: BoxDecoration(
-                                color: Theme.of(context).cardColor,
                                 borderRadius: BorderRadius.circular(20.0),
-                                border: Theme.of(context).backgroundColor !=
-                                        Color(0xff242424)
-                                    ? Border.all(
-                                        color: Colors.grey.shade200,
-                                      )
-                                    : null,
-                                boxShadow: Theme.of(context).backgroundColor !=
-                                        Color(0xff242424)
-                                    ? [
-                                        BoxShadow(
-                                          blurRadius: 2.0,
-                                          spreadRadius: 1.0,
-                                          color: Colors.grey.shade100,
-                                        )
-                                      ]
-                                    : null,
+                                border: Border.all(
+                                  width: 2.0,
+                                  color: Theme.of(context).canvasColor,
+                                ),
                               ),
                               padding:
                                   const EdgeInsets.only(left: 20.0, right: 5.0),
@@ -217,15 +187,12 @@ class _ProfileState extends State<Profile> {
                                 textAlign: TextAlign.start,
                                 textAlignVertical: TextAlignVertical.center,
                                 controller: new TextEditingController.fromValue(
-                                    new TextEditingValue(
-                                        text: _textEditingController.text,
-                                        selection: new TextSelection.collapsed(
-                                            offset: _textEditingController
-                                                .text.length))),
-                                style: TextStyle(
-                                  color:
-                                      Theme.of(context).textTheme.title.color,
-                                  fontSize: 18.0,
+                                  new TextEditingValue(
+                                    text: _textEditingController.text,
+                                    selection: new TextSelection.collapsed(
+                                        offset:
+                                            _textEditingController.text.length),
+                                  ),
                                 ),
                                 onChanged: (content) {
                                   _textEditingController.text = content;
@@ -235,8 +202,9 @@ class _ProfileState extends State<Profile> {
                                     TextCapitalization.sentences,
                                 cursorRadius: Radius.circular(10.0),
                                 cursorColor: Colors.blue,
-                                maxLines: 1,
-                                maxLength: 50,
+                                maxLines: 2,
+                                minLines: 1,
+                                maxLength: 100,
                                 expands: false,
                                 enableSuggestions: true,
                                 decoration: InputDecoration(
@@ -304,8 +272,7 @@ class _ProfileState extends State<Profile> {
                                 value: widget.darkThemeEnabled,
                                 onChanged: (val) {
                                   bloc.changeTheme(val);
-                                  Config.prefs
-                                      .setBool(Config.darkModePrefs, val);
+                                  setDarkTheme(val);
                                 },
                               ),
                             ],
