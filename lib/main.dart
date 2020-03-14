@@ -13,6 +13,11 @@ Future<Null> main() async {
   SharedPreferences prefs = await SharedPreferences.getInstance();
   String _username = (prefs.getString('username') ?? '');
   bool darkThemeEnabled = prefs.getBool("DarkMode");
+  Color themeColor = Color(prefs.getInt('color') ?? Color(0xFF27E9E1).value);
+  // SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
+  //   statusBarColor: Colors.black, // status bar color
+  //   statusBarIconBrightness: Brightness.dark,
+  // ));
   SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp])
       .then((_) {
     runApp(LifeCycleManager(
@@ -21,47 +26,66 @@ Future<Null> main() async {
             initialData: darkThemeEnabled ?? false,
             stream: bloc.darkThemeEnabled,
             builder: (context, snapshot) {
-              return MaterialApp(
-                  theme: ThemeData(
-                    canvasColor: snapshot.data ? Colors.white : Colors.black,
-                    backgroundColor:
-                        snapshot.data ? Color(0xff242424) : Colors.white,
-                    accentColor: Color(0xFF27E9E1),
-                    cardColor: Colors.grey.shade800,
-                    brightness:
-                        snapshot.data ? Brightness.dark : Brightness.light,
-                    appBarTheme: AppBarTheme(
-                      color: snapshot.data ? Color(0xff242424) : Colors.white,
-                      iconTheme: IconThemeData(
-                        color: Color(0xFF27E9E1),
-                        size: 25.0,
-                      ),
-                      elevation: 0.0,
-                      textTheme: TextTheme(
-                        title: TextStyle(
-                          color: snapshot.data ? Colors.white : Colors.black,
-                          fontSize: 15.0,
+              return StreamBuilder<Color>(
+                  initialData: themeColor,
+                  stream: colorBloc.colorTheme,
+                  builder: (context, snap) {
+                    return MaterialApp(
+                        theme: ThemeData(
+                          primarySwatch: Colors.teal,
+                          canvasColor:
+                              snapshot.data ? Colors.white : Colors.black,
+                          backgroundColor:
+                              snapshot.data ? Color(0xff242424) : Colors.white,
+                          primaryColor: snap.data,
+                          cardColor: Colors.grey.shade800,
+                          iconTheme: IconThemeData(
+                            color: snapshot.data ? Colors.white : Colors.black,
+                          ),
+                          buttonColor:
+                              snapshot.data ? Colors.white12 : Colors.white54,
+                          appBarTheme: AppBarTheme(
+                            color: snapshot.data
+                                ? Color(0xff242424)
+                                : Colors.white,
+                            iconTheme: IconThemeData(
+                              color: snap.data,
+                              size: 25.0,
+                            ),
+                            elevation: 0.0,
+                            textTheme: TextTheme(
+                              button: TextStyle(
+                                color:
+                                    snapshot.data ? Colors.white : Colors.black,
+                              ),
+                              title: TextStyle(
+                                color:
+                                    snapshot.data ? Colors.white : Colors.black,
+                                fontSize: 15.0,
+                              ),
+                            ),
+                          ),
+                          cursorColor: Colors.blue,
+                          scaffoldBackgroundColor:
+                              snapshot.data ? Color(0xff242424) : Colors.white,
+                          textTheme: TextTheme(
+                            title: TextStyle(
+                              color:
+                                  snapshot.data ? Colors.white : Colors.black,
+                            ),
+                            subtitle: TextStyle(
+                              color:
+                                  snapshot.data ? Colors.white : Colors.black,
+                            ),
+                          ),
                         ),
-                      ),
-                    ),
-                    cursorColor: Colors.blue,
-                    scaffoldBackgroundColor:
-                        snapshot.data ? Color(0xff242424) : Colors.white,
-                    textTheme: TextTheme(
-                      title: TextStyle(
-                        color: snapshot.data ? Colors.white : Colors.black,
-                      ),
-                      subtitle: TextStyle(
-                        color: snapshot.data ? Colors.white : Colors.black,
-                      ),
-                    ),
-                  ),
-                  home: _username != ""
-                      ? ChatScreen(
-                          username: _username,
-                          darkThemeEnabled: snapshot.data,
-                        )
-                      : SplashScreen());
+                        home: _username != ""
+                            ? ChatScreen(
+                                username: _username,
+                                darkThemeEnabled: snapshot.data,
+                              )
+                            : SplashScreen());
+                  });
             })));
   });
 }

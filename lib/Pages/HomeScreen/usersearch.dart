@@ -184,8 +184,17 @@ class UserSearch extends SearchDelegate {
                         child: Column(
                           children: <Widget>[
                             ListTile(
-                              leading: Icon(Icons.person),
-                              title: Text(snapshot.data[index]),
+                              leading: Icon(Icons.person,
+                                  color:
+                                      Theme.of(context).textTheme.title.color),
+                              title: Text(
+                                snapshot.data[index],
+                                style: TextStyle(
+                                    color: Theme.of(context)
+                                        .textTheme
+                                        .title
+                                        .color),
+                              ),
                             ),
                             Padding(
                               padding: EdgeInsets.only(top: 2.0),
@@ -207,18 +216,9 @@ class UserSearch extends SearchDelegate {
         });
   }
 
-  // @override
-  // ThemeData appBarTheme(BuildContext context) {
-  //   final ThemeData themeData = Theme.of(context);
-  //   return themeData.copyWith(
-  //       primaryColor: background,
-  //       accentColor: Colors.teal,
-  //       inputDecorationTheme: InputDecorationTheme(
-  //         hintStyle: Theme.of(context).textTheme.title.copyWith(color: greet),
-  //       ),
-  //       iconTheme: Theme.of(context).iconTheme.copyWith(
-  //           color: background == Color(0xff242424) ? Colors.white : background),
-  //       textTheme:
-  //           themeData.textTheme.copyWith(title: TextStyle(color: greet)));
-  // }
+  @override
+  ThemeData appBarTheme(BuildContext context) {
+    final ThemeData themeData = Theme.of(context);
+    return themeData.copyWith(appBarTheme: themeData.appBarTheme);
+  }
 }

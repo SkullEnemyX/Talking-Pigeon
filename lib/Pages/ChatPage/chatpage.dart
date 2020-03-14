@@ -9,7 +9,9 @@ import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:talking_pigeon_x/Pages/ChatPage/friendsprofile.dart';
-import 'package:talking_pigeon_x/Pages/Profile/ImageScreen.dart';
+import 'package:talking_pigeon_x/Pages/Global/commonid.dart';
+import 'package:talking_pigeon_x/Pages/Global/timestamp.dart';
+import 'package:talking_pigeon_x/Pages/widgets/bubble.dart';
 //Used in case when the image needs to be uploaded to imgbb.
 
 class ChatPage extends StatefulWidget {
@@ -30,14 +32,17 @@ class _ChatPageState extends State<ChatPage> {
   Stream<QuerySnapshot> snap;
   StreamSubscription snapshotlastseen;
   DocumentSnapshot lastDocument;
-  final TextEditingController textEditingController = TextEditingController();
   List listMsg = [];
   String msg;
   String receiverToken = "";
   String status = "";
   String imageUrl = "";
   String statusForEveryone = "";
+  final CommonID commonID = CommonID();
   final ScrollController listScrollController = new ScrollController();
+  final TextEditingController textEditingController = TextEditingController();
+  final FocusNode _focusNode = FocusNode();
+  final TimeStamp _timeStamp = TimeStamp();
 
   @override
   void initState() {
@@ -80,39 +85,9 @@ class _ChatPageState extends State<ChatPage> {
     return snap;
   }
 
-  String lastSeen(String status) {
-    if (status.compareTo("online") == 0 ||
-        status.compareTo("") == 0 ||
-        status == null) {
-      return status;
-    } else {
-      var now = DateTime.now();
-      var date = DateTime.fromMillisecondsSinceEpoch(int.parse(status));
-      var diff = now.difference(date);
-      var formatHR = DateFormat("hh:mm a");
-      var formatDAY = DateFormat("MMM dd, y");
-      if (diff.inDays < 1 &&
-          DateFormat("dd").format(now) == DateFormat("dd").format(date)) {
-        return "last seen today at " + formatHR.format(date);
-      } else if (diff.inDays == 1 ||
-          int.parse(DateFormat("dd").format(date)) !=
-              int.parse(DateFormat("dd").format(now))) {
-        return "last seen yesterday at " + formatHR.format(date);
-      }
-      return "last seen on " + formatDAY.format(date);
-    }
-  }
-
-  String returnGroupId(String myid, String friendid) {
-    if (myid.hashCode >= friendid.hashCode) {
-      return (myid.hashCode.toString() + friendid.hashCode.toString());
-    } else {
-      return (friendid.hashCode.toString() + myid.hashCode.toString());
-    }
-  }
-
   Stream<QuerySnapshot> snapshotReturn() {
-    final String groupId = returnGroupId(widget.name, widget.frienduid);
+    final String groupId =
+        commonID.singleChatConversationID(widget.name, widget.frienduid);
     Stream<QuerySnapshot> snap = Firestore.instance
         .collection('messages')
         .document(groupId)
@@ -123,74 +98,97 @@ class _ChatPageState extends State<ChatPage> {
     return snap;
   }
 
-  bool _checkChangeInDate(int prevtimestamp, int curtimestamp) {
-    DateTime prevDate = DateTime.fromMillisecondsSinceEpoch(prevtimestamp);
-    DateTime curDate = DateTime.fromMillisecondsSinceEpoch(curtimestamp);
-    DateFormat dateFormat = DateFormat("d");
-    if (prevDate.difference(curDate).inDays >= 1 ||
-        int.parse(dateFormat.format(prevDate)) !=
-            int.parse(dateFormat.format(curDate))) {
-      return true;
-    }
-    return false;
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Theme.of(context).backgroundColor,
-      appBar: new AppBar(
+      appBar: AppBar(
         elevation: 0.0,
+        automaticallyImplyLeading: false,
+        titleSpacing: 0.0,
         backgroundColor: Theme.of(context).appBarTheme.color,
-        primary: true,
-        title: InkWell(
-          onTap: () {
-            Navigator.of(context).push(MaterialPageRoute(
-                builder: (context) => UserProfile(
-                      username: widget.frienduid,
-                      imageUrl: imageUrl,
-                      lastseen: status,
-                      statusForEveryone: statusForEveryone,
-                      //status is the timestamp and statusforeveryone is the user's showoff msg.
-                    )));
-          },
-          child: Container(
-            width: double.maxFinite,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Text(
-                  "${widget.frienduid}"
-                      .toString()
-                      .split(" ")[0], //Change Name to Friends name.
-                  style: TextStyle(
-                      fontSize: 25.0,
-                      color: widget.greet,
-                      fontWeight: FontWeight.w600),
+        title: Row(
+          children: <Widget>[
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10.0),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(30.0),
+                onTap: () => Navigator.of(context).pop(),
+                child: Container(
+                  margin: const EdgeInsets.all(3.0),
+                  child: Row(
+                    children: <Widget>[
+                      Icon(
+                        Icons.arrow_back,
+                        color: Theme.of(context).iconTheme.color,
+                      ),
+                      Container(
+                        margin: const EdgeInsets.only(left: 5.0),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                        ),
+                        child: new CircleAvatar(
+                          radius: 20.0,
+                          backgroundColor: Theme.of(context).backgroundColor,
+                          foregroundColor: Theme.of(context).primaryColor,
+                          child: ClipOval(
+                            child: CachedNetworkImage(
+                              imageUrl: imageUrl ??
+                                  "https://i.ya-webdesign.com/images/default-image-png-1.png",
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-                Text(
-                  lastSeen(status),
-                  style: TextStyle(
-                      color: Theme.of(context).textTheme.title.color,
-                      fontSize: 15.0,
-                      fontWeight: FontWeight.w400),
-                ),
-              ],
+              ),
             ),
-          ),
-        ),
-        leading: new IconButton(
-          icon: Icon(
-            Icons.arrow_back,
-            color: Color(0xFF27E9E1),
-          ),
-          onPressed: () async {
-            Navigator.pop(context);
-          },
+            InkWell(
+              onTap: () {
+                Navigator.of(context).push(MaterialPageRoute(
+                    builder: (context) => UserProfile(
+                          username: widget.frienduid,
+                          imageUrl: imageUrl,
+                          lastseen: status,
+                          statusForEveryone: statusForEveryone,
+                          //status is the timestamp and statusforeveryone is the user's showoff msg.
+                        )));
+              },
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.start,
+                children: <Widget>[
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.max,
+                    children: <Widget>[
+                      Text(
+                        "${widget.frienduid}"
+                            .toString()
+                            .split(" ")[0], //Change Name to Friends name.
+                        style: TextStyle(
+                            fontSize: 25.0,
+                            color: widget.greet,
+                            fontWeight: FontWeight.w600),
+                      ),
+                      Text(
+                        _timeStamp.lastSeen(status),
+                        style: TextStyle(
+                            color: Theme.of(context).textTheme.title.color,
+                            fontSize: 15.0,
+                            fontWeight: FontWeight.w400),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
       body: new Container(
-        color: Theme.of(context).backgroundColor,
         width: double.infinity,
         child: Column(
           mainAxisAlignment: MainAxisAlignment.start,
@@ -214,13 +212,23 @@ class _ChatPageState extends State<ChatPage> {
                                 if (i == document.length - 1) {
                                   return buildColumnWithTime(document, i);
                                 } else if (i >= 1 &&
-                                    _checkChangeInDate(
+                                    _timeStamp.checkChangeInDate(
                                         int.parse(document[i]["timestamp"]),
                                         int.parse(
                                             document[i + 1]["timestamp"]))) {
                                   return buildColumnWithTime(document, i);
                                 } else {
-                                  return buildColumn(document, i);
+                                  return InkWell(
+                                      onTap: () {
+                                        print(i);
+                                      },
+                                      child: Dismissible(
+                                          key: UniqueKey(),
+                                          confirmDismiss: (dir) async {
+                                            _focusNode.requestFocus();
+                                            return false;
+                                          },
+                                          child: buildColumn(document, i)));
                                 }
                               }
                               return Column(
@@ -300,28 +308,29 @@ class _ChatPageState extends State<ChatPage> {
                       //width: MediaQuery.of(context).size.width * 0.75,
                       padding: EdgeInsets.symmetric(horizontal: 8.0),
                       decoration: BoxDecoration(
-                        color: Theme.of(context).backgroundColor,
                         borderRadius: new BorderRadius.circular(50.0),
-                        border:
-                            Border.all(color: Theme.of(context).canvasColor),
+                        border: Border.all(
+                          color: Theme.of(context).canvasColor,
+                        ),
                       ),
-                      child: new TextFormField(
+                      child: TextFormField(
                         textAlign: TextAlign.start,
+                        focusNode: _focusNode,
                         decoration: new InputDecoration(
                           filled: true,
                           border: InputBorder.none,
                           fillColor: Colors.transparent,
                           hintText: "Type a message",
                           hintStyle: TextStyle(
-                              fontSize: 15.0,
-                              color:
-                                  Theme.of(context).textTheme.subtitle.color),
+                            fontSize: 15.0,
+                            color: Theme.of(context).textTheme.subtitle.color,
+                          ),
                           suffixIcon: IconButton(
+                            color: Theme.of(context).iconTheme.color,
                             icon: Icon(
                               Icons.send,
                               size: 25.0,
                             ),
-                            color: Theme.of(context).textTheme.title.color,
                             disabledColor: Colors.grey,
                             onPressed: () =>
                                 textEditingController.value.text != ""
@@ -336,15 +345,9 @@ class _ChatPageState extends State<ChatPage> {
                         keyboardType: TextInputType.text,
                         enableSuggestions: true,
                         autocorrect: true,
-                        onFieldSubmitted: (message) => message != ""
-                            ? sendMessage(message, 0, ImageSource.gallery)
-                            : null,
-                        textCapitalization: TextCapitalization.sentences,
                         style: TextStyle(
-                          color: Theme.of(context).textTheme.title.color,
-                          //fontSize: 18.0,
-                        ),
-                        onSaved: (val) => msg = val,
+                            color: Theme.of(context).textTheme.title.color),
+                        textCapitalization: TextCapitalization.sentences,
                       ),
                     ),
                   ),
@@ -414,15 +417,6 @@ class _ChatPageState extends State<ChatPage> {
         ),
       ],
     );
-  }
-
-  String readTimestamp(int timestamp) {
-    var format = new DateFormat('HH:mm a');
-    var date = new DateTime.fromMicrosecondsSinceEpoch(timestamp * 1000);
-    var time = '';
-    format = DateFormat(" d/M/y, HH:mm a");
-    time = format.format(date);
-    return time;
   }
 
   void sendMessage(String content, int type, ImageSource source) async {
@@ -496,8 +490,10 @@ class _ChatPageState extends State<ChatPage> {
 
     await Firestore.instance
         .collection('messages')
-        .document(returnGroupId(widget.name, widget.frienduid))
-        .collection(returnGroupId(widget.name, widget.frienduid))
+        .document(
+            commonID.singleChatConversationID(widget.name, widget.frienduid))
+        .collection(
+            commonID.singleChatConversationID(widget.name, widget.frienduid))
         .document(timeStamp.toString())
         .setData(transaction);
     //Updating latest timestamp on sender's friendlist
@@ -514,146 +510,5 @@ class _ChatPageState extends State<ChatPage> {
         .collection(widget.frienduid)
         .document(widget.name)
         .updateData({"lastTimestamp": timeStamp.toString()});
-  }
-}
-
-class Bubble extends StatelessWidget {
-  Bubble(
-      {this.message,
-      this.notMe,
-      this.delivered,
-      this.timestamp,
-      this.sendername,
-      this.type = 0,
-      this.background,
-      this.methodVia = 0});
-  final bool delivered;
-  final bool notMe;
-  final String message;
-  final String timestamp;
-  final int type;
-  final String sendername;
-  final Color background;
-  //This describes whether the message sent is an image or a text.
-  final int methodVia; //For personal chat: 0, for group chat: 1
-
-  String readTimestamp(int timestamp) {
-    var format = new DateFormat('HH:mm a');
-    var date = new DateTime.fromMicrosecondsSinceEpoch(timestamp * 1000);
-    var time = '';
-    format = DateFormat("hh:mm a");
-    time = format.format(date);
-    return time;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final double radiusCircle = 15.0;
-    final bg = notMe
-        ? background == Color(0XFF242424) ? Colors.white : Colors.grey.shade300
-        : Color(0xFF27E9E1).withOpacity(0.7);
-    final align = notMe ? CrossAxisAlignment.start : CrossAxisAlignment.end;
-    final icon = delivered ? Icons.done_all : Icons.done;
-    final double width = MediaQuery.of(context).size.width * 0.75;
-    final radius = BorderRadius.all(Radius.circular(radiusCircle));
-    return type == 1
-        ? Column(
-            crossAxisAlignment: align,
-            children: <Widget>[
-              InkWell(
-                onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                    builder: (context) => ImageScreen(
-                          message,
-                          background: background,
-                          timestamp: timestamp,
-                          username: sendername,
-                        ))),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(20.0),
-                  child: Container(
-                    margin: const EdgeInsets.all(10.0),
-                    child: Card(
-                      clipBehavior: Clip.antiAlias,
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20.0)),
-                      child: CachedNetworkImage(
-                        imageUrl: message,
-                        fit: BoxFit.cover,
-                      ),
-                    ),
-                    width: width - 20,
-                    height: width - 50,
-                  ),
-                ),
-              ),
-            ],
-          )
-        : Column(
-            crossAxisAlignment: align,
-            children: <Widget>[
-              Container(
-                margin: const EdgeInsets.only(
-                    left: 10, top: 5.0, bottom: 5.0, right: 10.0),
-                padding: const EdgeInsets.only(
-                    top: 15.0, bottom: 10.0, right: 15.0, left: 15.0),
-                constraints: BoxConstraints(maxWidth: width, minWidth: 80.0),
-                decoration: BoxDecoration(
-                  boxShadow: [
-                    BoxShadow(
-                        blurRadius: .5,
-                        spreadRadius: 1.0,
-                        color: Colors.black.withOpacity(.12))
-                  ],
-                  color: bg,
-                  borderRadius: radius,
-                ),
-                child: Stack(
-                  alignment:
-                      notMe ? Alignment.centerLeft : Alignment.centerRight,
-                  children: <Widget>[
-                    Padding(
-                      padding: EdgeInsets.only(right: 0.0, bottom: 15.0),
-                      child: Text(message,
-                          style: TextStyle(
-                              fontSize: 16.0,
-                              color: notMe
-                                  ? Colors.black
-                                  : background == Color(0XFF242424)
-                                      ? Colors.white
-                                      : Colors.black)),
-                    ),
-                    Positioned(
-                      bottom: 0.0,
-                      left: notMe ? 0.0 : null,
-                      right: notMe ? null : 0.0,
-                      child: Row(
-                        children: <Widget>[
-                          Text(readTimestamp(int.parse(timestamp)),
-                              style: TextStyle(
-                                color: notMe
-                                    ? Colors.black
-                                    : background == Color(0XFF242424)
-                                        ? Colors.white
-                                        : Colors.black,
-                                fontSize: 9.0,
-                              )),
-                          SizedBox(width: 3.0),
-                          Icon(
-                            icon,
-                            size: 12.0,
-                            color: notMe
-                                ? Colors.black
-                                : background == Color(0XFF242424)
-                                    ? Colors.white
-                                    : Colors.black,
-                          )
-                        ],
-                      ),
-                    )
-                  ],
-                ),
-              ),
-            ],
-          );
   }
 }

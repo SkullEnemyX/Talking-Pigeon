@@ -86,7 +86,7 @@ class _UserProfileState extends State<UserProfile> {
         leading: new IconButton(
           icon: Icon(
             Icons.arrow_back,
-            color: Color(0xFF27E9E1),
+            color: Theme.of(context).iconTheme.color,
           ),
           onPressed: () async {
             Navigator.pop(context);
@@ -108,7 +108,7 @@ class _UserProfileState extends State<UserProfile> {
                   shape: BoxShape.circle,
                 ),
                 child: InkWell(
-                  splashColor: Color(0xFF27E9E1),
+                  splashColor: Theme.of(context).primaryColor,
                   borderRadius: BorderRadius.circular(100.0),
                   onTap: () {},
                   child: ClipOval(
@@ -198,6 +198,8 @@ class _UserProfileState extends State<UserProfile> {
                       minLines: 1,
                       maxLength: 100,
                       expands: false,
+                      style: TextStyle(
+                          color: Theme.of(context).textTheme.title.color),
                       enableSuggestions: true,
                       decoration: InputDecoration(
                         counter: Container(),

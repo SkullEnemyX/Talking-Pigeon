@@ -1,230 +1,226 @@
+import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
+import 'package:http/http.dart' as http;
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_spinkit/flutter_spinkit.dart';
+import 'package:image_cropper/image_cropper.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
-import 'package:talking_pigeon_x/Pages/ChatPage/chatpage.dart';
+import 'package:talking_pigeon_x/Pages/Global/commonid.dart';
+import 'package:talking_pigeon_x/Pages/Global/timestamp.dart';
+import 'package:talking_pigeon_x/Pages/widgets/bubble.dart';
 
 class GroupChat extends StatefulWidget {
-  final String groupName;
-  final String admin;
   final String username;
-  final String groupId;
-  final Color greet, background;
-  GroupChat(
-      {@required this.groupName,
-      this.admin,
-      @required this.background,
-      @required this.greet,
-      @required this.username,
-      @required this.groupId});
+  final String groupid;
+  final String groupname;
+  final String imageUrl;
+  const GroupChat(
+      {Key key, this.username, this.groupid, this.groupname, this.imageUrl})
+      : super(key: key);
   @override
   _GroupChatState createState() => _GroupChatState();
 }
 
 class _GroupChatState extends State<GroupChat> {
-  String groupName;
-  String groupId;
-  List<String> member;
-  var snap;
-  final TextEditingController textEditingController =
-      new TextEditingController();
-  List listMsg = [];
+  Stream<QuerySnapshot> snap;
+  StreamSubscription groupSnapshot;
+  DocumentSnapshot lastDocument;
   String msg;
+  final CommonID commonID = CommonID();
   final ScrollController listScrollController = new ScrollController();
-
-  Stream<QuerySnapshot> createGroup() {
-    var snapshot = Firestore.instance
-        .collection('messages')
-        .document(groupId)
-        .collection(groupId)
-        .orderBy('timestamp', descending: true)
-        .limit(50)
-        .snapshots();
-    return snapshot;
-  }
-
-  messageList(String msg, bool notme, String timestamp) {
-    if (listMsg.length >= 20) {
-      listMsg.removeAt(0);
-    }
-    listMsg.add([msg, notme, timestamp]);
-    return listMsg;
-  }
-
-  String readTimestamp(int timestamp) {
-    var now = new DateTime.now();
-    var format = new DateFormat('HH:mm a');
-    var date = new DateTime.fromMicrosecondsSinceEpoch(timestamp * 1000);
-    var diff = now.difference(date);
-    var time = '';
-
-    if (diff.inSeconds <= 0 ||
-        diff.inSeconds > 0 && diff.inMinutes == 0 ||
-        diff.inMinutes > 0 && diff.inHours == 0 ||
-        diff.inHours > 0 && diff.inDays == 0) {
-      time = 'Today at ' + format.format(date);
-    } else if (diff.inDays > 0 && diff.inDays < 7) {
-      if (diff.inDays == 1) {
-        time = 'Yesterday at ' + format.format(date);
-      } else {
-        time = diff.inDays.toString() + ' DAYS AGO';
-      }
-    } else {
-      format = DateFormat("HH:mm a on MMM d, y");
-      time = format.format(date);
-    }
-
-    return time;
-  }
-
-  runTransactionToAddMembers(String uname, String groupId) {
-    List<String> groups;
-    DocumentReference docRef = Firestore.instance.document("Users/$uname");
-    docRef.get().then((onValue) {
-      if (onValue != null) groups = onValue.data["groups"];
-    }).catchError((w) => throw (w));
-    groups.add(groupId);
-    docRef.updateData({'groups': groups});
-  }
-
-  void sendMessage() async {
-    int timeStamp = DateTime.now().millisecondsSinceEpoch;
-    if (textEditingController.value.text != "") {
-      setState(() {
-        messageList(
-            textEditingController.value.text, false, readTimestamp(timeStamp));
-        listScrollController.animateTo(0.0,
-            duration: Duration(milliseconds: 300), curve: Curves.easeOut);
-        //Refreshing widget when new message is sent or appears.
-      });
-      var documentReference = Firestore.instance
-          .collection('messages')
-          .document(groupId)
-          .collection(groupId)
-          .document(timeStamp.toString());
-
-      Firestore.instance.runTransaction((transaction) async {
-        await transaction.set(
-          documentReference,
-          {
-            'sender': widget.username,
-            'timestamp': timeStamp.toString(),
-            'content': textEditingController.value.text,
-          },
-        );
-      }).whenComplete(() {
-        textEditingController.clear();
-        setState(() {});
-      });
-    }
-    setState(() {});
-  }
-
-  saveGroupInfo(String username) async {
-    var listOfGroups = [];
-    var l = [];
-    List<dynamic> map = [];
-    await Firestore.instance.document("Users/$username").get().then((onValue) {
-      if (onValue.exists) {
-        map.addAll(onValue.data['groups']);
-        for (int i = 0; i < map.length; i++) {
-          map[i].forEach((m, f) => l.add(m));
-        }
-        print(l);
-        if (!l.contains(groupId)) {
-          map.add({groupId: groupName});
-          onValue.reference.updateData({'groups': map});
-        }
-      }
-    });
-    listOfGroups.forEach((f) => print(f));
-  }
+  final TextEditingController textEditingController = TextEditingController();
+  final FocusNode _focusNode = FocusNode();
+  final TimeStamp _timeStamp = TimeStamp();
+  String groupName;
+  String groupImageUrl;
+  List memberList;
 
   @override
   void initState() {
     super.initState();
-    groupId = widget.groupId;
-    groupName = widget.groupName;
-    saveGroupInfo(widget.username);
+    snap = snapshotReturn(widget.username, widget.groupid);
+    groupSnapshot = _fetchInitDetails().listen((val) {
+      DocumentSnapshot db = val.documents[0];
+      groupImageUrl = db["imageUrl"] ?? "";
+      groupName = db["groupname"] ?? "";
+      memberList = db["members"] ?? [];
+    });
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+    textEditingController.dispose();
+    groupSnapshot.cancel();
+  }
+
+  Stream<QuerySnapshot> _fetchInitDetails() {
+    Stream<QuerySnapshot> snap = Firestore.instance
+        .collection("Groups")
+        .where("groupid", isEqualTo: "${widget.groupid}")
+        .snapshots();
+    return snap;
+  }
+
+  Stream<QuerySnapshot> snapshotReturn(String username, String groupid) {
+    //Properly working function.
+    Stream<QuerySnapshot> snap = Firestore.instance
+        .collection('messages')
+        .document(groupid)
+        .collection(groupid)
+        .orderBy('timestamp', descending: true)
+        .limit(50)
+        .snapshots();
+    return snap;
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: new AppBar(
+      backgroundColor: Theme.of(context).backgroundColor,
+      appBar: AppBar(
         elevation: 0.0,
-        backgroundColor: widget.background,
-        centerTitle: true,
-        title: new Text(
-          "${widget.groupName}", //Change Name to Friends name.
-          style: TextStyle(fontSize: 23.0, color: widget.greet),
-        ),
-        leading: new IconButton(
-          icon: Icon(
-            Icons.arrow_back,
-            color: Color(0xFF27E9E1),
-          ),
-          onPressed: () async {
-            Navigator.pop(context);
-          },
-        ),
-        actions: <Widget>[
-          IconButton(
-            onPressed: () {
-              showSearch(
-                  context: context,
-                  delegate: AddMembers(
-                      groupId: groupId,
-                      groupName: groupName,
-                      username: widget.username));
-            },
-            icon: Icon(
-              Icons.add,
-              color: Color(0XFF27E9E1),
+        automaticallyImplyLeading: false,
+        titleSpacing: 0.0,
+        backgroundColor: Theme.of(context).appBarTheme.color,
+        title: Row(
+          children: <Widget>[
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10.0),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(30.0),
+                onTap: () => Navigator.of(context).pop(),
+                child: Container(
+                  margin: const EdgeInsets.all(3.0),
+                  child: Row(
+                    children: <Widget>[
+                      Icon(
+                        Icons.arrow_back,
+                        color: Theme.of(context).iconTheme.color,
+                      ),
+                      Container(
+                        margin: const EdgeInsets.only(left: 5.0),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                        ),
+                        child: new CircleAvatar(
+                          radius: 20.0,
+                          backgroundColor: Theme.of(context).backgroundColor,
+                          foregroundColor: Theme.of(context).primaryColor,
+                          child: ClipOval(
+                            child: CachedNetworkImage(
+                              imageUrl: widget.imageUrl ??
+                                  "https://i.ya-webdesign.com/images/default-image-png-1.png",
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ),
-          )
-        ],
+            InkWell(
+              onTap: () {
+                // Navigator.of(context).push(MaterialPageRoute(
+                //     builder: (context) => UserProfile(
+                //           username: widget.frienduid,
+                //           imageUrl: imageUrl,
+                //           lastseen: status,
+                //           statusForEveryone: statusForEveryone,
+                //           //status is the timestamp and statusforeveryone is the user's showoff msg.
+                //         )));
+                //Navigation on hold.
+              },
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.start,
+                children: <Widget>[
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.max,
+                    children: <Widget>[
+                      Text(
+                        "${widget.groupname}", //Change Name to Friends name.
+                        style: TextStyle(
+                          fontSize: 25.0,
+                          color: Theme.of(context).textTheme.title.color,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      //Add members name here.
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
       body: new Container(
-        color: widget.background,
         width: double.infinity,
         child: Column(
           mainAxisAlignment: MainAxisAlignment.start,
           children: <Widget>[
             Flexible(
               child: StreamBuilder(
-                  stream: createGroup(),
+                  stream: snap,
                   builder: (context, snapshot) {
-                    listMsg = [];
                     if (!snapshot.hasData)
-                      return CircularProgressIndicator();
+                      return SizedBox.expand();
                     else {
-                      List<DocumentSnapshot> document = snapshot.data.documents;
-                      for (int i = 0; i < document.length; i++) {
-                        listMsg.add([
-                          document[i]["content"],
-                          document[i]["sender"].compareTo(widget.username) == 0
-                              ? false
-                              : true,
-                          document[i]["timestamp"]
-                        ]);
-                      }
+                      List<DocumentSnapshot> document =
+                          snapshot.data.documents ?? [];
                       return ListView.builder(
                           reverse: true,
-                          itemCount: snapshot.data.documents.length,
+                          itemCount: document.length,
                           controller: listScrollController,
                           itemBuilder: (context, i) {
                             try {
+                              if (document.length > 1) {
+                                if (i == document.length - 1) {
+                                  return buildColumnWithTime(document, i);
+                                } else if (i >= 1 &&
+                                    _timeStamp.checkChangeInDate(
+                                        int.parse(document[i]["timestamp"]),
+                                        int.parse(
+                                            document[i + 1]["timestamp"]))) {
+                                  return buildColumnWithTime(document, i);
+                                } else {
+                                  return InkWell(
+                                      onTap: () {
+                                        print(i);
+                                      },
+                                      child: Dismissible(
+                                          key: UniqueKey(),
+                                          confirmDismiss: (dir) async {
+                                            _focusNode.requestFocus();
+                                            return false;
+                                          },
+                                          child: buildColumn(document, i)));
+                                }
+                              }
                               return Column(
                                 crossAxisAlignment: CrossAxisAlignment.stretch,
                                 children: <Widget>[
                                   Bubble(
-                                    message: listMsg[i][0],
-                                    notMe: listMsg[i][1],
+                                    message: document[i]["content"],
+                                    notMe: document[i]["isMe"]
+                                                .compareTo(widget.username) ==
+                                            0
+                                        ? false
+                                        : true,
                                     delivered: true,
-                                    timestamp:
-                                        readTimestamp(int.parse(listMsg[i][2])),
-                                    methodVia: 1,
+                                    sendername: document[i]["isMe"],
+                                    timestamp: document[i]["timestamp"],
+                                    methodVia: 0,
+                                    background: Theme.of(context).primaryColor,
+                                    type:
+                                        document[i]["isImage"] == true ? 1 : 0,
                                   ),
                                 ],
                               );
@@ -239,41 +235,96 @@ class _GroupChatState extends State<GroupChat> {
             ),
             Padding(
               padding: EdgeInsets.all(10.0),
-              child: Container(
-                padding: EdgeInsets.symmetric(horizontal: 8.0),
-                decoration: BoxDecoration(
-                  color: widget.greet != Color(0xFF242424)
-                      ? widget.greet
-                      : Colors.grey.shade300,
-                  borderRadius: new BorderRadius.circular(20.0),
-                ),
-                child: new TextFormField(
-                  textAlign: TextAlign.start,
-                  decoration: new InputDecoration(
-                      filled: true,
-                      border: InputBorder.none,
-                      fillColor: Colors.transparent,
-                      hintText: "Type a message...",
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          Icons.send,
-                          size: 25.0,
+              child: Row(
+                children: <Widget>[
+                  Container(
+                    height: 45.0,
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).backgroundColor,
+                      borderRadius: BorderRadius.circular(50.0),
+                      border: Border.all(
+                        color: Theme.of(context).canvasColor,
+                      ),
+                    ),
+                    child: Row(
+                      children: <Widget>[
+                        IconButton(
+                          onPressed: () => sendMessage(
+                            textEditingController.value.text,
+                            1,
+                            ImageSource.gallery,
+                          ),
+                          icon: Icon(
+                            Icons.image,
+                            color: Theme.of(context).textTheme.title.color,
+                          ),
                         ),
-                        color: Colors.black,
-                        disabledColor: Colors.grey,
-                        onPressed: sendMessage,
-                      )),
-                  controller: textEditingController,
-                  keyboardType: TextInputType.multiline,
-                  textCapitalization: TextCapitalization.words,
-                  style: TextStyle(
-                    color: widget.background == Color(0xFF242424)
-                        ? widget.background
-                        : widget.greet,
-                    fontSize: 18.0,
+                        IconButton(
+                          onPressed: () => sendMessage(
+                              textEditingController.value.text,
+                              1,
+                              ImageSource.camera),
+                          icon: Icon(
+                            Icons.camera,
+                            color: Theme.of(context).textTheme.title.color,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                  onSaved: (val) => msg = val,
-                ),
+                  SizedBox(
+                    width: 5.0,
+                  ),
+                  Expanded(
+                    child: Container(
+                      height: 45.0,
+                      //width: MediaQuery.of(context).size.width * 0.75,
+                      padding: EdgeInsets.symmetric(horizontal: 8.0),
+                      decoration: BoxDecoration(
+                        borderRadius: new BorderRadius.circular(50.0),
+                        border: Border.all(
+                          color: Theme.of(context).canvasColor,
+                        ),
+                      ),
+                      child: TextFormField(
+                        textAlign: TextAlign.start,
+                        focusNode: _focusNode,
+                        decoration: new InputDecoration(
+                          filled: true,
+                          border: InputBorder.none,
+                          fillColor: Colors.transparent,
+                          hintText: "Type a message",
+                          hintStyle: TextStyle(
+                            fontSize: 15.0,
+                            color: Theme.of(context).textTheme.subtitle.color,
+                          ),
+                          suffixIcon: IconButton(
+                            color: Theme.of(context).iconTheme.color,
+                            icon: Icon(
+                              Icons.send,
+                              size: 25.0,
+                            ),
+                            disabledColor: Colors.grey,
+                            onPressed: () =>
+                                textEditingController.value.text != ""
+                                    ? sendMessage(
+                                        textEditingController.value.text,
+                                        0,
+                                        ImageSource.gallery)
+                                    : null,
+                          ),
+                        ),
+                        controller: textEditingController,
+                        keyboardType: TextInputType.text,
+                        enableSuggestions: true,
+                        autocorrect: true,
+                        style: TextStyle(
+                            color: Theme.of(context).textTheme.title.color),
+                        textCapitalization: TextCapitalization.sentences,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
@@ -281,254 +332,159 @@ class _GroupChatState extends State<GroupChat> {
       ),
     );
   }
-}
 
-class AddMembers extends SearchDelegate<String> {
-  final String username;
-  final String groupId;
-  final String groupName;
-  AddMembers({this.username, this.groupId, this.groupName});
-  var friends;
-
-  final CollectionReference collectionReference =
-      Firestore.instance.collection("Users");
-  List<String> userList = ["null"];
-  List<String> presentList = ["null"];
-  List<String> friendSuggestion = [];
-  var users;
-
-  saveGroupInfo(String username) async {
-    List<dynamic> map = [];
-    await Firestore.instance.document("Users/$username").get().then((onValue) {
-      if (onValue.exists) {
-        map.addAll(onValue.data['groups']);
-        map.add({groupId: groupName});
-        onValue.reference.updateData({'groups': map});
-      }
-    });
-  }
-
-  Future<List<String>> addfriends(String username) async {
-    final DocumentReference documentReference =
-        Firestore.instance.document("Users/$username");
-
-    await documentReference.get().then((snapshot) {
-      if (snapshot.exists) {
-        friends = snapshot.data['friends'];
-      } else {
-        friendSuggestion = [];
-      }
-    });
-    if (friendSuggestion.isNotEmpty) {
-      friendSuggestion.clear();
-      for (int i = 0; i < friends.length; i++) {
-        friendSuggestion.add(friends[i].toString());
-      }
-    }
-    return friendSuggestion;
-  }
-
-  Future<List<String>> testfunc() async {
-    final DocumentReference documentReference =
-        Firestore.instance.document("Users/$username");
-
-    await documentReference.get().then((snapshot) {
-      if (snapshot.exists) {
-        friends = snapshot.data['friends'];
-      }
-    });
-    if (friendSuggestion.isNotEmpty) friendSuggestion.clear();
-    for (int i = 0; i < friends.length; i++) {
-      friendSuggestion.add(friends[i].toString());
-    }
-    return friendSuggestion;
-  }
-
-  Future<List<String>> checkpart2(String s) async {
-    DocumentReference reference = Firestore.instance.document("People/People");
-    await reference.get().then((snapshot) {
-      if (snapshot.exists) {
-        users = snapshot.data["People"];
-      }
-      if (userList.isNotEmpty) userList.clear();
-      for (int i = 0; i < users.length; i++) {
-        userList.add(users[i].toString());
-      }
-      userList.remove(username);
-    });
-    return userList
-        .where((p) => p.startsWith(s))
-        .toList(); // Used in case we want to return query beginning
-    //return userList.where((p)=>p.compareTo(s)==0).toList(); //If exact match needed on query.
-  }
-
-  @override
-  List<Widget> buildActions(BuildContext context) {
-    return [
-      IconButton(
-        icon: Icon(Icons.clear),
-        onPressed: () {},
-      )
-    ];
-  }
-
-  @override
-  Widget buildLeading(BuildContext context) {
-    return IconButton(
-      icon: AnimatedIcon(
-        icon: AnimatedIcons.menu_arrow,
-        progress: transitionAnimation,
-      ),
-      onPressed: () {
-        close(context, null);
-      },
+  Column buildColumn(List<DocumentSnapshot> document, int i) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: <Widget>[
+        Bubble(
+          message: document[i]["content"],
+          notMe: document[i]["isMe"].compareTo(widget.username) == 0
+              ? false
+              : true,
+          delivered: true,
+          sendername: document[i]["isMe"],
+          timestamp: document[i]["timestamp"],
+          methodVia: 0,
+          background: Theme.of(context).primaryColor,
+          type: document[i]["isImage"] == true ? 1 : 0,
+        ),
+      ],
     );
   }
 
-  @override
-  Widget buildResults(BuildContext context) {
-    return FutureBuilder(
-        future: checkpart2(query),
-        builder: (BuildContext context, AsyncSnapshot snapshot) {
-          if (snapshot.connectionState ==
-              ConnectionState.done) if (snapshot.data.length < 1)
-            return Container(
-              child: Center(
-                child: Text("No user found"),
-              ),
-            );
-          else
-            return ListView.builder(
-              itemBuilder: (context, index) => InkWell(
-                splashColor: Color(0xFF27E9E1),
-                onTap: () async {
-                  //Adding people to each other's friendlist if one selects the name of the user.
-                  Navigator.of(context).pop();
-                  await saveGroupInfo(snapshot.data[index]);
-                },
-                child: Container(
-                  child: Column(
-                    children: <Widget>[
-                      ListTile(
-                        leading: Icon(Icons.person),
-                        title: Text(snapshot.data[index]),
-                      ),
-                      Padding(
-                        padding: EdgeInsets.only(top: 2.0),
-                      ),
-                      Divider(
-                        color: Colors.grey,
-                        height: 2.0,
-                        indent: 70.0,
-                      )
-                    ],
-                  ),
+  Column buildColumnWithTime(List<DocumentSnapshot> document, int i) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: <Widget>[
+        Center(
+          child: Container(
+            margin: const EdgeInsets.only(top: 8.0),
+            padding: const EdgeInsets.all(8.0),
+            decoration: BoxDecoration(
+                border: Border.all(
+                    color: Theme.of(context).textTheme.title.color, width: 0.5),
+                borderRadius: BorderRadius.circular(20.0)),
+            child: Text(
+              DateFormat("MMM dd, y").format(
+                DateTime.fromMillisecondsSinceEpoch(
+                  int.parse(document[i]["timestamp"]),
                 ),
               ),
-              itemCount: snapshot.data?.length ?? 0,
-            );
-          else {
-            return Center(
-                child: SpinKitDoubleBounce(
-              size: 60.0,
-              color: Color(0xFF27E9E1),
-            ));
-          }
-        });
+              style: TextStyle(color: Theme.of(context).textTheme.title.color),
+            ),
+          ),
+        ),
+        SizedBox(
+          height: 10,
+        ),
+        Bubble(
+          message: document[i]["content"],
+          notMe: document[i]["isMe"].compareTo(widget.username) == 0
+              ? false
+              : true,
+          delivered: true,
+          sendername: document[i]["isMe"],
+          timestamp: document[i]["timestamp"],
+          methodVia: 0,
+          background: Theme.of(context).primaryColor,
+          type: document[i]["isImage"] == true ? 1 : 0,
+        ),
+      ],
+    );
   }
 
-  @override
-  Widget buildSuggestions(BuildContext context) {
-    // presentList = query.isEmpty?friendSuggestion:userList.where((word)=>word.startsWith(query)).toList();
+  void sendMessage(String content, int type, ImageSource source) async {
+    //message type = 0; image type = 1;
+    //Camera option: 0; gallery option: 1
+    final int timeStamp = DateTime.now().millisecondsSinceEpoch;
+    WidgetsBinding.instance
+        .addPostFrameCallback((_) => textEditingController.clear());
+    String imageUrl;
+    var url;
+    if (type == 1) {
+      File _image = await ImagePicker.pickImage(source: source, maxWidth: 1024);
+      _image = await ImageCropper.cropImage(
+        sourcePath: _image.path,
+        aspectRatioPresets: [
+          CropAspectRatioPreset.square,
+          CropAspectRatioPreset.ratio3x2,
+          CropAspectRatioPreset.original,
+          CropAspectRatioPreset.ratio5x4,
+          CropAspectRatioPreset.ratio7x5,
+          CropAspectRatioPreset.ratio4x3,
+          CropAspectRatioPreset.ratio16x9,
+        ],
+        androidUiSettings: AndroidUiSettings(
+          toolbarTitle: '',
+          backgroundColor: Theme.of(context).backgroundColor,
+          showCropGrid: false,
+          activeControlsWidgetColor: Colors.purple,
+          //If theme color is added then change this, otherwise the theme of the app.
+          toolbarColor: Theme.of(context).backgroundColor,
+          toolbarWidgetColor: Colors.white,
+          initAspectRatio: CropAspectRatioPreset.original,
+          lockAspectRatio: false,
+        ),
+        iosUiSettings: IOSUiSettings(
+          minimumAspectRatio: 1.0,
+        ),
+      );
+      List<int> imageBytes = _image.readAsBytesSync();
+      imageUrl = base64Encode(imageBytes);
+      // print(imageUrl); Very bad algortihm, try not to use.
+      Map<String, dynamic> body = {
+        "key": "400b0402ee29bc7eb67b70b35f836fcd",
+        "image": imageUrl,
+      };
+      try {
+        var response =
+            await http.post("https://api.imgbb.com/1/upload", body: body);
+        var jsonObject = json.decode(response.body);
+        url = jsonObject["data"]["url"];
+      } catch (e) {
+        throw e;
+      }
+    } else if (type == 0) {
+      setState(() {
+        listScrollController.animateTo(0.0,
+            duration: Duration(milliseconds: 300), curve: Curves.elasticIn);
+        //Refreshing widget when new message is sent or appears.
+      });
+    }
+    //Compulsory transaction.
+    Map<String, dynamic> transaction = {
+      'timestamp': timeStamp.toString(),
+      'content': type == 0 ? content : url,
+      //add url later to this part of the image that is uploaded either on imgbb or firebase storage.
+      'isMe': widget.username,
+      'isImage': type == 1,
+      'receiverToken':
+          '' //Put the receiver token of all members or find some other jugaad.
+      //this set isImage field to boolean true if it is an image else false if it is a message.
+    };
 
-    return query.isEmpty
-        ? FutureBuilder(
-            future: testfunc(),
-            builder: (BuildContext context, AsyncSnapshot snapshot) {
-              if (snapshot.connectionState == ConnectionState.done)
-                return ListView.builder(
-                  itemBuilder: (context, index) => InkWell(
-                    splashColor: Color(0xFF27E9E1),
-                    onTap: () {
-                      Navigator.of(context).pop();
-                      saveGroupInfo(snapshot.data[index]);
-                    },
-                    child: Container(
-                      child: Column(
-                        children: <Widget>[
-                          ListTile(
-                            leading: Icon(Icons.person),
-                            title: Text(snapshot.data[index]),
-                          ),
-                          Padding(
-                            padding: EdgeInsets.only(top: 2.0),
-                          ),
-                          Divider(
-                            color: Colors.grey,
-                            height: 2.0,
-                            indent: 70.0,
-                          )
-                        ],
-                      ),
-                    ),
-                  ),
-                  itemCount: snapshot.data?.length ?? 0,
-                );
-              else {
-                return Center(
-                    child: SpinKitDoubleBounce(
-                  size: 60.0,
-                  color: Color(0xFF27E9E1),
-                ));
-              }
-            })
-        : FutureBuilder(
-            future: checkpart2(query),
-            builder: (BuildContext context, AsyncSnapshot snapshot) {
-              if (snapshot.connectionState ==
-                  ConnectionState.done) if (snapshot.data.length < 1)
-                return Container(
-                  child: Center(
-                    child: Text("No user found"),
-                  ),
-                );
-              else
-                return ListView.builder(
-                  itemBuilder: (context, index) => InkWell(
-                    splashColor: Color(0xFF27E9E1),
-                    onTap: () async {
-                      //Adding people to each other's friendlist if one selects the name of the user.
-                      Navigator.of(context).pop();
-                      await saveGroupInfo(snapshot.data[index]);
-                    },
-                    child: Container(
-                      child: Column(
-                        children: <Widget>[
-                          ListTile(
-                            leading: Icon(Icons.person),
-                            title: Text(snapshot.data[index]),
-                          ),
-                          Padding(
-                            padding: EdgeInsets.only(top: 2.0),
-                          ),
-                          Divider(
-                            color: Colors.grey,
-                            height: 2.0,
-                            indent: 70.0,
-                          )
-                        ],
-                      ),
-                    ),
-                  ),
-                  itemCount: snapshot.data?.length ?? 0,
-                );
-              else {
-                return Center(
-                    child: SpinKitDoubleBounce(
-                  size: 60.0,
-                  color: Color(0xFF27E9E1),
-                ));
-              }
-            });
+    await Firestore.instance
+        .collection('messages')
+        .document(widget.groupid)
+        .collection(widget.groupid)
+        .document(timeStamp.toString())
+        .setData(transaction);
+    //Updating latest timestamp on sender's friendlist
+    // await Firestore.instance
+    //     .collection("FriendList")
+    //     .document("FriendList")
+    //     .collection(widget.name)
+    //     .document(widget.frienduid)
+    //     .updateData({"lastTimestamp": timeStamp.toString()});
+    // //Updating latest timestamp on receiver's friendlist
+    // await Firestore.instance
+    //     .collection("FriendList")
+    //     .document("FriendList")
+    //     .collection(widget.frienduid)
+    //     .document(widget.name)
+    //     .updateData({"lastTimestamp": timeStamp.toString()});
   }
 }

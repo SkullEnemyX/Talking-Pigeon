@@ -33,45 +33,49 @@ class _LoginScreenState extends State<LoginScreen>
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      theme: ThemeData(primarySwatch: Colors.teal),
-      home: new Scaffold(
-          resizeToAvoidBottomInset: false,
-          appBar: new AppBar(
-            bottomOpacity: 0.7,
-            title: new Text(
-              "Talking Pigeon",
-              style: TextStyle(
-                fontSize: 25.0,
-                color: Colors.white.withOpacity(0.8),
-              ),
-            ),
-            bottom: new TabBar(
-              controller: tabController,
-              tabs: <Widget>[
-                new Tab(
-                  text: "Sign-up",
-                ),
-                new Tab(
-                  text: "Sign-in",
-                )
-              ],
-            ),
+    return Scaffold(
+      resizeToAvoidBottomInset: false,
+      appBar: new AppBar(
+        bottomOpacity: 0.7,
+        backgroundColor: Colors.teal,
+        elevation: 0.0,
+        title: new Text(
+          "Talking Pigeon",
+          style: TextStyle(
+            fontSize: 25.0,
+            color: Colors.white.withOpacity(0.8),
           ),
-          key: scaffoldKey,
-          backgroundColor: Colors.black,
-          body: new Stack(fit: StackFit.expand, children: <Widget>[
-            new Image(
-                image: new AssetImage("assets/cherry.jpg"),
-                fit: BoxFit.cover,
-                color: Colors.black87,
-                colorBlendMode: BlendMode.darken),
-            new TabBarView(
-              children: <Widget>[new Signup(), new Signin()],
-              controller: tabController,
+        ),
+        bottom: new TabBar(
+          controller: tabController,
+          indicatorColor: Colors.white,
+          labelColor: Colors.white,
+          unselectedLabelColor: Colors.white,
+          tabs: <Widget>[
+            new Tab(
+              text: "Sign-up",
             ),
-            //new Signup()
-          ])),
+            new Tab(
+              text: "Sign-in",
+            )
+          ],
+        ),
+      ),
+      body: new Stack(
+        fit: StackFit.expand,
+        children: <Widget>[
+          new Image(
+              image: new AssetImage("assets/cherry.jpg"),
+              fit: BoxFit.cover,
+              color: Colors.black87,
+              colorBlendMode: BlendMode.darken),
+          new TabBarView(
+            children: <Widget>[new Signup(), new Signin()],
+            controller: tabController,
+          ),
+          //new Signup()
+        ],
+      ),
     );
   }
 }
@@ -321,7 +325,7 @@ class _SignupState extends State<Signup> with SingleTickerProviderStateMixin {
                                   if (_isobs) {
                                     setState(() {
                                       _isobs = false;
-                                      _eyeBC = Theme.of(context).primaryColor;
+                                      _eyeBC = Colors.teal;
                                     });
                                   } else {
                                     setState(() {
@@ -574,8 +578,7 @@ class _SigninState extends State<Signin> with SingleTickerProviderStateMixin {
                                     if (_isobscured) {
                                       setState(() {
                                         _isobscured = false;
-                                        _eyeButtonColor =
-                                            Theme.of(context).primaryColor;
+                                        _eyeButtonColor = Colors.teal;
                                       });
                                     } else {
                                       setState(() {

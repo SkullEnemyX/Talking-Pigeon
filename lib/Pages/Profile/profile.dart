@@ -21,15 +21,13 @@ class Profile extends StatefulWidget {
 }
 
 class _ProfileState extends State<Profile> {
-  String profilePic = "";
-  String thumbnail = "";
-  String fullname;
   TextEditingController _textEditingController = TextEditingController();
   bool readOnly = true;
   Icon editStatus = Icon(
     Icons.edit,
     color: Colors.grey,
   );
+  bool darkThemeEnabled;
   Stream<QuerySnapshot> snapshot;
   Userauthentication userAuth = new Userauthentication();
   SharedPreferences prefs;
@@ -37,6 +35,7 @@ class _ProfileState extends State<Profile> {
   void initState() {
     super.initState();
     snapshot = readUserInfo(widget.username);
+    darkThemeEnabled = widget.darkThemeEnabled ?? false;
   }
 
   Stream<QuerySnapshot> readUserInfo(String username) {
@@ -49,6 +48,11 @@ class _ProfileState extends State<Profile> {
   setDarkTheme(bool val) async {
     prefs = await SharedPreferences.getInstance();
     prefs.setBool("DarkMode", val);
+  }
+
+  setThemeColor(Color themeColor) async {
+    prefs = await SharedPreferences.getInstance();
+    prefs.setInt('color', themeColor.value);
   }
 
   void uploadProfilePic() async {
@@ -84,20 +88,71 @@ class _ProfileState extends State<Profile> {
     }
   }
 
+  Widget themeColor() {
+    List<Color> colors = [
+      Colors.blueAccent,
+      Colors.indigo,
+      Colors.teal,
+      Colors.deepOrangeAccent,
+      Colors.pinkAccent,
+    ];
+    final double circleSize = 30.0;
+    List<Widget> colorsButtons = List<Widget>();
+    for (int i = 0; i < colors.length; i++) {
+      colorsButtons.add(
+        Container(
+          margin: const EdgeInsets.symmetric(
+            horizontal: 5.0,
+          ),
+          width: circleSize,
+          height: circleSize,
+          decoration: BoxDecoration(
+            color: colors[i],
+            shape: BoxShape.circle,
+          ),
+          child: InkWell(
+            splashColor: Colors.transparent,
+            onTap: () {
+              colorBloc.changeColorTheme(colors[i]);
+              setThemeColor(colors[i]);
+            },
+            radius: 100.0,
+          ),
+        ),
+      );
+    }
+    return Row(
+      children: <Widget>[
+        Text(
+          "Themes",
+          style: TextStyle(
+            color: Theme.of(context).textTheme.title.color,
+            fontSize: 25.0,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        SizedBox(
+          width: 30.0,
+        ),
+        Row(
+          children: colorsButtons,
+        )
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-        resizeToAvoidBottomPadding: false,
-        resizeToAvoidBottomInset: false,
-        backgroundColor: Theme.of(context).backgroundColor,
-        body: StreamBuilder<QuerySnapshot>(
-            stream: snapshot,
-            builder: (context, snapshot) {
-              if (snapshot.hasData) {
-                DocumentSnapshot documentSnapshot = snapshot.data.documents[0];
-                _textEditingController.text =
-                    documentSnapshot["status_for_everyone"];
-                return Column(
+    return Container(
+      child: StreamBuilder<QuerySnapshot>(
+          stream: snapshot,
+          builder: (context, snapshot) {
+            if (snapshot.hasData) {
+              DocumentSnapshot documentSnapshot = snapshot.data.documents[0];
+              _textEditingController.text =
+                  documentSnapshot["status_for_everyone"];
+              return SingleChildScrollView(
+                child: Column(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   mainAxisAlignment: MainAxisAlignment.start,
                   mainAxisSize: MainAxisSize.max,
@@ -181,10 +236,15 @@ class _ProfileState extends State<Profile> {
                               ),
                               padding:
                                   const EdgeInsets.only(left: 20.0, right: 5.0),
-                              child: TextField(
+                              child: TextFormField(
                                 autocorrect: true,
                                 readOnly: readOnly,
                                 textAlign: TextAlign.start,
+                                style: TextStyle(
+                                    color: Theme.of(context)
+                                        .textTheme
+                                        .title
+                                        .color),
                                 textAlignVertical: TextAlignVertical.center,
                                 controller: new TextEditingController.fromValue(
                                   new TextEditingValue(
@@ -269,18 +329,32 @@ class _ProfileState extends State<Profile> {
                                 width: 10.0,
                               ),
                               CupertinoSwitch(
-                                value: widget.darkThemeEnabled,
+                                value: darkThemeEnabled,
                                 onChanged: (val) {
                                   bloc.changeTheme(val);
                                   setDarkTheme(val);
+                                  setState(() {
+                                    darkThemeEnabled = !darkThemeEnabled;
+                                  });
                                 },
                               ),
                             ],
                           ),
                         ),
+                        SizedBox(
+                          height: 20.0,
+                        ),
+                        Padding(
+                            padding: const EdgeInsets.only(
+                              top: 10.0,
+                              left: 30.0,
+                            ),
+                            child: themeColor()),
                       ],
                     ),
-                    Expanded(child: SizedBox()),
+                    SizedBox(
+                      height: 100.0,
+                    ),
                     InkWell(
                       splashColor: Colors.teal,
                       borderRadius: BorderRadius.circular(20.0),
@@ -295,40 +369,22 @@ class _ProfileState extends State<Profile> {
                             MaterialPageRoute(
                                 builder: (context) => LoginScreen()));
                       },
-                      child: Material(
-                        borderRadius: BorderRadius.circular(20.0),
-                        color: Theme.of(context).backgroundColor ==
-                                Color(0xff242424)
-                            ? Colors.white12
-                            : Colors.white70,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(vertical: 10.0),
-                          width: 150.0,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(20.0),
-                            boxShadow: Theme.of(context).backgroundColor !=
-                                    Color(0xff242424)
-                                ? [
-                                    BoxShadow(
-                                      blurRadius: 5.0,
-                                      spreadRadius: 2.0,
-                                      color: Colors.grey.shade200,
-                                    ),
-                                  ]
-                                : null,
-                            color: Theme.of(context).backgroundColor ==
-                                    Color(0xff242424)
-                                ? Colors.white12
-                                : Colors.white70,
-                          ),
-                          child: Align(
-                            alignment: Alignment.center,
-                            child: Text(
-                              "SIGN OUT",
-                              style: TextStyle(
-                                  color: Color(0xFF27E9E1),
-                                  fontSize: 20.0,
-                                  fontWeight: FontWeight.bold),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 10.0),
+                        width: 150.0,
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).buttonColor,
+                          border: Border.all(color: Colors.black, width: 1.0),
+                          borderRadius: BorderRadius.circular(20.0),
+                        ),
+                        child: Align(
+                          alignment: Alignment.center,
+                          child: Text(
+                            "SIGN OUT",
+                            style: TextStyle(
+                              color: Theme.of(context).primaryColor,
+                              fontSize: 20.0,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
                         ),
@@ -345,10 +401,12 @@ class _ProfileState extends State<Profile> {
                       ),
                     ),
                   ],
-                );
-              } else {
-                return Container();
-              }
-            }));
+                ),
+              );
+            } else {
+              return Container();
+            }
+          }),
+    );
   }
 }

@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -7,11 +8,15 @@ import 'package:intl/intl.dart';
 import 'package:talking_pigeon_x/Pages/Authentication/authentication.dart';
 import 'package:talking_pigeon_x/Pages/Authentication/sign-in.dart';
 import 'package:talking_pigeon_x/Pages/ChatPage/chatpage.dart';
+import 'package:talking_pigeon_x/Pages/Global/commonid.dart';
+import 'package:talking_pigeon_x/Pages/Global/timestamp.dart';
+import 'package:talking_pigeon_x/Pages/Group/groupchat.dart';
 import 'package:talking_pigeon_x/Pages/HomeScreen/usersearch.dart';
 import 'package:talking_pigeon_x/Pages/Profile/profile.dart';
 import 'package:talking_pigeon_x/Pages/widgets/animated_bottombar.dart';
 import 'package:unicorndial/unicorndial.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:talking_pigeon_x/Pages/Group/creategroup.dart';
 
 class FriendData {
   String username;
@@ -30,9 +35,7 @@ class ChatScreen extends StatefulWidget {
 
 class _ChatScreenState extends State<ChatScreen> {
   //Make it dynamic
-  String greeting = "Good Afternoon";
-  String theme = "Dark Theme";
-  int gvalue = 0;
+  String greeting = "";
   FirebaseMessaging _firebaseMessaging = FirebaseMessaging();
   TextEditingController textEditingController = TextEditingController();
   int hour;
@@ -45,8 +48,14 @@ class _ChatScreenState extends State<ChatScreen> {
   String thumbnail = "";
   String profilepic = "";
   String fullname = "";
+  List<String> selectedFriends = [];
   Stream<QuerySnapshot> streamOfFriends;
+  Stream<QuerySnapshot> streamOfGroups;
   var childButtons = List<UnicornButton>();
+  final TimeStamp _timeStamp = TimeStamp();
+  final CommonID commonID = CommonID();
+  bool createGroupButton = false;
+
   //Bottom Animated Bar
   //Ends here.
 
@@ -81,8 +90,12 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   _initx() async {
-    fetchTime();
+    int hour = int.tryParse(DateFormat("hh").format(DateTime.now()));
+    greeting = _timeStamp.timeOfTheDay(hour);
+    selectedFriends.add(widget.username);
     streamOfFriends = _fetchFromFriendsCollection();
+
+    streamOfGroups = fetchGroupData(widget.username);
     await Firestore.instance
         .document("Users/${widget.username}")
         .updateData({"status": "online"});
@@ -111,66 +124,19 @@ class _ChatScreenState extends State<ChatScreen> {
     return friendDocumentReference;
   }
 
-  returnGroupId(String myid, String friendid) {
-    if (myid.hashCode >= friendid.hashCode) {
-      return (myid.hashCode.toString() + friendid.hashCode.toString());
-    } else {
-      return (friendid.hashCode.toString() + myid.hashCode.toString());
-    }
-  }
-
-  String customTimestamp(int timestamp) {
-    var now = new DateTime.now();
-    var format = new DateFormat('hh:mm a');
-    var date = new DateTime.fromMicrosecondsSinceEpoch(timestamp * 1000);
-    var diff = now.difference(date);
-    var time = '';
-
-    if (diff.inSeconds <= 0 ||
-        diff.inSeconds > 0 && diff.inMinutes == 0 ||
-        diff.inMinutes > 0 && diff.inHours == 0 ||
-        diff.inHours > 0 && diff.inDays == 0) {
-      time = format.format(date);
-    } else if (diff.inDays > 0 && diff.inDays < 7) {
-      if (diff.inDays == 1) {
-        time = 'Yesterday';
-      } else {
-        format = DateFormat("dd/M/y");
-        time = format.format(date);
-      }
-    }
-    return time;
-  }
-
-  String readTimestamp(int timestamp) {
-    var now = new DateTime.now();
-    var format = new DateFormat('HH:mm a');
-    var date = new DateTime.fromMicrosecondsSinceEpoch(timestamp * 1000);
-    var diff = now.difference(date);
-    var time = '';
-
-    if (diff.inSeconds <= 0 ||
-        diff.inSeconds > 0 && diff.inMinutes == 0 ||
-        diff.inMinutes > 0 && diff.inHours == 0 ||
-        diff.inHours > 0 && diff.inDays == 0) {
-      time = 'Today at ' + format.format(date);
-    } else if (diff.inDays > 0 && diff.inDays < 7) {
-      if (diff.inDays == 1) {
-        time = 'Yesterday at ' + format.format(date);
-      } else {
-        format = DateFormat("HH:mm a on MMM d, y");
-        time = format.format(date);
-      }
-    }
-    return time;
-  }
-
   fetchData() {
     Stream<QuerySnapshot> snapshot = Firestore.instance
         .collection("Users")
         .where('username', isEqualTo: widget.username)
         .snapshots();
     return snapshot;
+  }
+
+  Stream<QuerySnapshot> fetchGroupData(String username) {
+    return Firestore.instance
+        .collection("Groups")
+        .where("members", arrayContains: username)
+        .snapshots();
   }
 
   Stream<QuerySnapshot> _fetchFromFriendsCollection() {
@@ -181,6 +147,13 @@ class _ChatScreenState extends State<ChatScreen> {
         .orderBy("lastTimestamp", descending: true)
         .snapshots();
     return snapshot;
+  }
+
+  Stream<QuerySnapshot> _friendInfo(String friend) {
+    return Firestore.instance
+        .collection("Users")
+        .where('username', isEqualTo: friend)
+        .snapshots();
   }
 
   //Returns a widget that formats the last sent message.
@@ -206,26 +179,118 @@ class _ChatScreenState extends State<ChatScreen> {
           )
         ],
       );
-    } else if (string.split(" ").length < 8) {
-      return Text(
-        string,
-        style: style,
-      );
     }
     return Text(
-      string.split(" ").sublist(0, 8).join(" ") + " ...",
+      string,
+      overflow: TextOverflow.ellipsis,
       style: style,
     );
   }
 
-  String fetchInitials(String s) {
-    //Temporary function in case user's profile picture is used instead of their initials.
-    return s[0][0].toUpperCase();
+  Widget groupBuildBody() {
+    return Container(
+      child: Column(
+        children: <Widget>[
+          new Padding(padding: EdgeInsets.only(top: 10.0)),
+          Row(
+            children: <Widget>[
+              new Padding(padding: EdgeInsets.only(left: 25.0)),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  new Text(
+                    "$greeting, " +
+                        "${widget.username}".toString().split(" ")[0],
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 22.0,
+                      color: Theme.of(context).textTheme.title.color,
+                    ),
+                  ),
+                  new Padding(
+                    padding: EdgeInsets.only(top: 10.0, left: 30.0),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          Expanded(
+            child: StreamBuilder<QuerySnapshot>(
+              stream: streamOfGroups,
+              builder: (context, snap) {
+                return !snap.hasData || snap.data.documents.length < 1
+                    ? Center(
+                        child: Text(
+                        "Create a group and add friends",
+                        style: Theme.of(context).textTheme.title,
+                      ))
+                    : ListView.builder(
+                        itemCount: snap.data.documents?.length ?? 0,
+                        itemBuilder: (context, index) {
+                          String groupName =
+                              snap.data.documents[index]["groupname"] ?? "";
+                          String groupImageUrl =
+                              snap.data.documents[index]["imageUrl"] ?? "";
+                          String groupid =
+                              snap.data.documents[index]["groupid"] ?? "";
+                          return ListTile(
+                              onTap: () {
+                                Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                        builder: (context) => GroupChat(
+                                              username: widget.username,
+                                              groupid: groupid,
+                                              groupname: groupName,
+                                              imageUrl: groupImageUrl,
+                                            )));
+                              },
+                              contentPadding: const EdgeInsets.only(
+                                left: 20.0,
+                                top: 0.0,
+                                right: 20.0,
+                              ),
+                              title: Text(
+                                groupName,
+                                style: TextStyle(
+                                  color:
+                                      Theme.of(context).textTheme.title.color,
+                                  fontSize: 16.0,
+                                ),
+                              ),
+                              leading: Container(
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                ),
+                                child: CircleAvatar(
+                                  radius: 27.0,
+                                  backgroundColor:
+                                      Theme.of(context).backgroundColor,
+                                  foregroundColor:
+                                      Theme.of(context).primaryColor,
+                                  child: ClipOval(
+                                    child: CachedNetworkImage(
+                                      imageUrl: groupImageUrl == "" ||
+                                              groupImageUrl == null
+                                          ? "https://i.ya-webdesign.com/images/default-image-png-1.png"
+                                          : groupImageUrl,
+                                      fit: BoxFit.cover,
+                                    ),
+                                  ),
+                                ),
+                              ));
+                        },
+                      );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
-  Widget _buildBody(int selection) {
+  Widget chatbuildBody() {
     return Container(
-      color: Theme.of(context).backgroundColor,
       child: new Column(
         children: <Widget>[
           new Padding(padding: EdgeInsets.only(top: 10.0)),
@@ -240,7 +305,7 @@ class _ChatScreenState extends State<ChatScreen> {
                         "${widget.username}".toString().split(" ")[0],
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
-                      fontSize: 25.0,
+                      fontSize: 22.0,
                       color: Theme.of(context).textTheme.title.color,
                     ),
                   ),
@@ -266,7 +331,7 @@ class _ChatScreenState extends State<ChatScreen> {
                                   snap.data.documents[index]["username"];
                               return StreamBuilder<QuerySnapshot>(
                                   stream: friendFetchQuerySnapshot(
-                                      returnGroupId(
+                                      commonID.singleChatConversationID(
                                           widget.username, friendUsername),
                                       ref),
                                   builder: (BuildContext context,
@@ -275,6 +340,8 @@ class _ChatScreenState extends State<ChatScreen> {
                                       List<DocumentSnapshot> documents =
                                           snapshot.data.documents;
                                       return ListTile(
+                                        contentPadding: const EdgeInsets.only(
+                                            left: 20.0, top: 0.0, right: 20.0),
                                         onTap: () {
                                           Navigator.push(
                                             context,
@@ -289,12 +356,12 @@ class _ChatScreenState extends State<ChatScreen> {
                                         title: Text(
                                           friendUsername,
                                           style: TextStyle(
-                                              color: Theme.of(context)
-                                                  .textTheme
-                                                  .title
-                                                  .color,
-                                              fontSize: 20.0,
-                                              fontWeight: FontWeight.bold),
+                                            color: Theme.of(context)
+                                                .textTheme
+                                                .title
+                                                .color,
+                                            fontSize: 16.0,
+                                          ),
                                         ),
                                         subtitle: Container(
                                             padding: EdgeInsets.only(top: 5.0),
@@ -304,47 +371,83 @@ class _ChatScreenState extends State<ChatScreen> {
                                                   : "*no new messages*",
                                               TextStyle(
                                                 color: Colors.grey,
-                                                fontSize: 15.0,
+                                                fontSize: 12.0,
                                               ),
                                             )),
-                                        trailing: snapshot
-                                                .data.documents.isEmpty
-                                            ? Text(" ")
-                                            : Text(
-                                                documents.isNotEmpty
-                                                    ? customTimestamp(int.parse(
-                                                        documents[0]
-                                                                ["timestamp"] ??
-                                                            ""))
-                                                    : "",
-                                                style: TextStyle(
-                                                  color: Theme.of(context)
-                                                      .textTheme
-                                                      .title
-                                                      .color,
-                                                  fontSize: 13.0,
+                                        trailing:
+                                            snapshot.data.documents.isEmpty
+                                                ? Text(" ")
+                                                : Text(
+                                                    documents.isNotEmpty
+                                                        ? _timeStamp
+                                                            .lastMessageTimestamp(
+                                                                int.parse(
+                                                                    documents[0]
+                                                                            [
+                                                                            "timestamp"] ??
+                                                                        ""))
+                                                        : "",
+                                                    style: TextStyle(
+                                                      color: Colors.grey,
+                                                      fontSize: 12.0,
+                                                    ),
+                                                  ),
+                                        leading: StreamBuilder<QuerySnapshot>(
+                                            stream: _friendInfo(snap.data
+                                                .documents[index]["username"]),
+                                            builder: (context, snapx) {
+                                              if (snapx.hasData) {
+                                                return Container(
+                                                  decoration: BoxDecoration(
+                                                    shape: BoxShape.circle,
+                                                  ),
+                                                  child: new CircleAvatar(
+                                                    radius: 27.0,
+                                                    backgroundColor:
+                                                        Theme.of(context)
+                                                            .backgroundColor,
+                                                    foregroundColor:
+                                                        Theme.of(context)
+                                                            .primaryColor,
+                                                    child: ClipOval(
+                                                      child: CachedNetworkImage(
+                                                        imageUrl: snapx.data
+                                                                    .documents[0]
+                                                                ["thumbnail"] ??
+                                                            "https://i.ya-webdesign.com/images/default-image-png-1.png",
+                                                        fit: BoxFit.cover,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                );
+                                              }
+                                              return Container(
+                                                decoration: BoxDecoration(
+                                                  border: Border.all(
+                                                    width: 2.0,
+                                                    color: Theme.of(context)
+                                                        .primaryColor,
+                                                  ),
+                                                  shape: BoxShape.circle,
                                                 ),
-                                              ),
-                                        leading: Container(
-                                          decoration: BoxDecoration(
-                                              border: Border.all(
-                                                width: 2.0,
-                                                color: Color(0xFF27E9E1),
-                                              ),
-                                              shape: BoxShape.circle),
-                                          child: new CircleAvatar(
-                                            radius: 25.0,
-                                            backgroundColor: Theme.of(context)
-                                                .backgroundColor,
-                                            foregroundColor: Color(0xFF27E9E1),
-                                            child: Text(
-                                              fetchInitials(friendUsername),
-                                              style: TextStyle(
-                                                  fontWeight: FontWeight.bold,
-                                                  fontSize: 20.0),
-                                            ),
-                                          ),
-                                        ),
+                                                child: new CircleAvatar(
+                                                  radius: 30.0,
+                                                  backgroundColor:
+                                                      Theme.of(context)
+                                                          .backgroundColor,
+                                                  foregroundColor:
+                                                      Theme.of(context)
+                                                          .accentColor,
+                                                  child: ClipOval(
+                                                    child: CachedNetworkImage(
+                                                      imageUrl:
+                                                          "https://i.ya-webdesign.com/images/default-image-png-1.png",
+                                                      fit: BoxFit.cover,
+                                                    ),
+                                                  ),
+                                                ),
+                                              );
+                                            }),
                                       );
                                     }
                                     return Container();
@@ -356,24 +459,6 @@ class _ChatScreenState extends State<ChatScreen> {
       ),
     );
     // }
-  }
-
-  fetchTime() {
-    DateTime now = DateTime.now();
-    hour = int.parse(DateFormat('kk').format(now));
-
-    if (hour >= 0 && hour < 12) {
-      greeting = "Good Morning";
-    } else if (hour >= 12 && hour < 17) {
-      greeting = "Good Afternoon";
-    } else {
-      greeting = "Good Evening";
-    }
-    if (hour < 17) {
-      gvalue = 1;
-    } else {
-      gvalue = 0;
-    }
   }
 
   void menuList(String value) async {
@@ -393,46 +478,56 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   void dispose() {
     textEditingController.dispose();
-
     super.dispose();
   }
 
-  final List<BarItem> barItems = [
-    BarItem(
-      text: "Personal",
-      iconData: Icons.chat_bubble_outline,
-      color: Colors.indigo,
-    ),
-    BarItem(
-      text: "Groups",
-      iconData: Icons.people,
-      color: Colors.pinkAccent,
-    ),
-    BarItem(
-      text: "Profile",
-      iconData: Icons.person_outline,
-      color: Colors.teal,
-    )
-  ];
+  List<BarItem> barItems(Color color) {
+    final List<BarItem> barItems = [
+      BarItem(
+        text: "Personal",
+        iconData: Icons.chat_bubble_outline,
+        color: color,
+      ),
+      BarItem(
+        text: "Groups",
+        iconData: Icons.people,
+        color: color,
+      ),
+      BarItem(
+        text: "Profile",
+        iconData: Icons.person_outline,
+        color: color,
+      )
+    ];
+    return barItems;
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      floatingActionButton: selectedIndex == 1
+          ? FloatingActionButton(
+              backgroundColor: Theme.of(context).primaryColor,
+              child: Icon(
+                createGroupButton ? Icons.arrow_forward : Icons.add,
+                color: Colors.black,
+              ),
+              onPressed: () {
+                Navigator.of(context).push(MaterialPageRoute(
+                    builder: (context) => CreateGroup(
+                          username: widget.username,
+                        )));
+              },
+            )
+          : null,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       resizeToAvoidBottomInset: false,
       resizeToAvoidBottomPadding: false,
       body: IndexedStack(
         index: selectedIndex,
         children: <Widget>[
-          _buildBody(0),
-          Container(
-            child: Center(
-              child: Text(
-                "Group Chat coming soon...",
-                style:
-                    TextStyle(color: Theme.of(context).textTheme.title.color),
-              ),
-            ),
-          ),
+          chatbuildBody(),
+          groupBuildBody(),
           Profile(
             username: widget.username,
             darkThemeEnabled: widget.darkThemeEnabled,
@@ -445,7 +540,7 @@ class _ChatScreenState extends State<ChatScreen> {
             selectedIndex = index;
           });
         },
-        barItems: barItems,
+        barItems: barItems(Theme.of(context).primaryColor),
         animationDuration: const Duration(milliseconds: 150),
         barStyle: BarStyle(fontSize: 15.0, iconSize: 30.0),
       ),
@@ -456,12 +551,24 @@ class _ChatScreenState extends State<ChatScreen> {
           style: TextStyle(fontSize: 30.0, fontWeight: FontWeight.w500),
         ),
         elevation: 0.0,
+        leading: selectedIndex == 1 && createGroupButton
+            ? IconButton(
+                icon: Icon(
+                  Icons.arrow_back,
+                  color: Theme.of(context).iconTheme.color,
+                ),
+                onPressed: () {
+                  setState(() {
+                    createGroupButton = !createGroupButton;
+                  });
+                })
+            : null,
         actions: <Widget>[
           IconButton(
               icon: Icon(
                 Icons.search,
                 size: 30.0,
-                color: Color(0xFF27E9E1),
+                color: Theme.of(context).primaryColor,
               ),
               onPressed: () {
                 showSearch(
