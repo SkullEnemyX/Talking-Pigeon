@@ -10,6 +10,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:talking_pigeon_x/Pages/Global/commonid.dart';
 import 'package:talking_pigeon_x/Pages/Global/timestamp.dart';
+import 'package:talking_pigeon_x/Pages/Group/groupinfo.dart';
 import 'package:talking_pigeon_x/Pages/widgets/bubble.dart';
 
 class GroupChat extends StatefulWidget {
@@ -17,8 +18,14 @@ class GroupChat extends StatefulWidget {
   final String groupid;
   final String groupname;
   final String imageUrl;
+  final List<dynamic> members;
   const GroupChat(
-      {Key key, this.username, this.groupid, this.groupname, this.imageUrl})
+      {Key key,
+      this.username,
+      this.groupid,
+      this.groupname,
+      this.imageUrl,
+      @required this.members})
       : super(key: key);
   @override
   _GroupChatState createState() => _GroupChatState();
@@ -36,18 +43,22 @@ class _GroupChatState extends State<GroupChat> {
   final TimeStamp _timeStamp = TimeStamp();
   String groupName;
   String groupImageUrl;
-  List memberList;
+  String memberList = "";
 
   @override
   void initState() {
     super.initState();
     snap = snapshotReturn(widget.username, widget.groupid);
+    memberList += widget.username;
     groupSnapshot = _fetchInitDetails().listen((val) {
       DocumentSnapshot db = val.documents[0];
       groupImageUrl = db["imageUrl"] ?? "";
       groupName = db["groupname"] ?? "";
       memberList = db["members"] ?? [];
     });
+    for (int i = 0; i < widget.members.length; ++i) {
+      memberList += ", " + widget.members[i].toString();
+    }
   }
 
   @override
@@ -126,36 +137,31 @@ class _GroupChatState extends State<GroupChat> {
             ),
             InkWell(
               onTap: () {
-                // Navigator.of(context).push(MaterialPageRoute(
-                //     builder: (context) => UserProfile(
-                //           username: widget.frienduid,
-                //           imageUrl: imageUrl,
-                //           lastseen: status,
-                //           statusForEveryone: statusForEveryone,
-                //           //status is the timestamp and statusforeveryone is the user's showoff msg.
-                //         )));
-                //Navigation on hold.
+                Navigator.of(context)
+                    .push(MaterialPageRoute(builder: (context) => GroupInfo()));
               },
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.start,
-                children: <Widget>[
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.max,
-                    children: <Widget>[
-                      Text(
-                        "${widget.groupname}", //Change Name to Friends name.
-                        style: TextStyle(
-                          fontSize: 25.0,
-                          color: Theme.of(context).textTheme.title.color,
-                          fontWeight: FontWeight.w600,
-                        ),
+              child: Container(
+                width: MediaQuery.of(context).size.width - 100.0,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.max,
+                  children: <Widget>[
+                    Text(
+                      "${widget.groupname}", //Change Name to Friends name.
+                      style: TextStyle(
+                        fontSize: 25.0,
+                        color: Theme.of(context).textTheme.title.color,
+                        fontWeight: FontWeight.w600,
                       ),
-                      //Add members name here.
-                    ],
-                  ),
-                ],
+                    ),
+                    Text(
+                      memberList,
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                    )
+                  ],
+                ),
               ),
             ),
           ],
@@ -180,54 +186,18 @@ class _GroupChatState extends State<GroupChat> {
                           itemCount: document.length,
                           controller: listScrollController,
                           itemBuilder: (context, i) {
-                            try {
-                              if (document.length > 1) {
-                                if (i == document.length - 1) {
-                                  return buildColumnWithTime(document, i);
-                                } else if (i >= 1 &&
-                                    _timeStamp.checkChangeInDate(
-                                        int.parse(document[i]["timestamp"]),
-                                        int.parse(
-                                            document[i + 1]["timestamp"]))) {
-                                  return buildColumnWithTime(document, i);
-                                } else {
-                                  return InkWell(
-                                      onTap: () {
-                                        print(i);
-                                      },
-                                      child: Dismissible(
-                                          key: UniqueKey(),
-                                          confirmDismiss: (dir) async {
-                                            _focusNode.requestFocus();
-                                            return false;
-                                          },
-                                          child: buildColumn(document, i)));
-                                }
+                            if (document.length == 1 ||
+                                i == document.length - 1) {
+                              return buildColumnWithTime(document[i]);
+                            } else {
+                              if (i >= 0 &&
+                                  _timeStamp.checkChangeInDate(
+                                    int.parse(document[i]["timestamp"]),
+                                    int.parse(document[i + 1]["timestamp"]),
+                                  )) {
+                                return buildColumnWithTime(document[i]);
                               }
-                              return Column(
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
-                                children: <Widget>[
-                                  Bubble(
-                                    message: document[i]["content"],
-                                    notMe: document[i]["isMe"]
-                                                .compareTo(widget.username) ==
-                                            0
-                                        ? false
-                                        : true,
-                                    delivered: true,
-                                    sendername: document[i]["isMe"],
-                                    timestamp: document[i]["timestamp"],
-                                    methodVia: 0,
-                                    background: Theme.of(context).primaryColor,
-                                    type:
-                                        document[i]["isImage"] == true ? 1 : 0,
-                                  ),
-                                ],
-                              );
-                            } catch (RangeError) {
-                              return Container(
-                                color: Colors.white,
-                              );
+                              return buildColumn(document[i]);
                             }
                           });
                     }
@@ -333,28 +303,40 @@ class _GroupChatState extends State<GroupChat> {
     );
   }
 
-  Column buildColumn(List<DocumentSnapshot> document, int i) {
+  Column buildColumn(DocumentSnapshot document) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisAlignment: MainAxisAlignment.center,
       children: <Widget>[
+        SizedBox(
+          height: 5.0,
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 15.0),
+          child: Text(
+            document["isMe"],
+            style: TextStyle(color: Theme.of(context).textTheme.title.color),
+            textAlign: document["isMe"].compareTo(widget.username) == 0
+                ? TextAlign.right
+                : TextAlign.left,
+          ),
+        ),
         Bubble(
-          message: document[i]["content"],
-          notMe: document[i]["isMe"].compareTo(widget.username) == 0
-              ? false
-              : true,
+          message: document["content"],
+          notMe:
+              document["isMe"].compareTo(widget.username) == 0 ? false : true,
           delivered: true,
-          sendername: document[i]["isMe"],
-          timestamp: document[i]["timestamp"],
+          sendername: document["isMe"],
+          timestamp: document["timestamp"],
           methodVia: 0,
           background: Theme.of(context).primaryColor,
-          type: document[i]["isImage"] == true ? 1 : 0,
+          type: document["isImage"] == true ? 1 : 0,
         ),
       ],
     );
   }
 
-  Column buildColumnWithTime(List<DocumentSnapshot> document, int i) {
+  Column buildColumnWithTime(DocumentSnapshot document) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisAlignment: MainAxisAlignment.center,
@@ -370,7 +352,7 @@ class _GroupChatState extends State<GroupChat> {
             child: Text(
               DateFormat("MMM dd, y").format(
                 DateTime.fromMillisecondsSinceEpoch(
-                  int.parse(document[i]["timestamp"]),
+                  int.parse(document["timestamp"]),
                 ),
               ),
               style: TextStyle(color: Theme.of(context).textTheme.title.color),
@@ -380,17 +362,26 @@ class _GroupChatState extends State<GroupChat> {
         SizedBox(
           height: 10,
         ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 15.0),
+          child: Text(
+            document["isMe"],
+            style: TextStyle(color: Theme.of(context).textTheme.title.color),
+            textAlign: document["isMe"].compareTo(widget.username) == 0
+                ? TextAlign.right
+                : TextAlign.left,
+          ),
+        ),
         Bubble(
-          message: document[i]["content"],
-          notMe: document[i]["isMe"].compareTo(widget.username) == 0
-              ? false
-              : true,
+          message: document["content"],
+          notMe:
+              document["isMe"].compareTo(widget.username) == 0 ? false : true,
           delivered: true,
-          sendername: document[i]["isMe"],
-          timestamp: document[i]["timestamp"],
+          sendername: document["isMe"],
+          timestamp: document["timestamp"],
           methodVia: 0,
           background: Theme.of(context).primaryColor,
-          type: document[i]["isImage"] == true ? 1 : 0,
+          type: document["isImage"] == true ? 1 : 0,
         ),
       ],
     );

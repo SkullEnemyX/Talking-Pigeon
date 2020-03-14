@@ -233,8 +233,11 @@ class _ChatScreenState extends State<ChatScreen> {
                               snap.data.documents[index]["imageUrl"] ?? "";
                           String groupid =
                               snap.data.documents[index]["groupid"] ?? "";
+                          List<dynamic> members =
+                              snap.data.documents[index]["members"] ?? [];
                           return ListTile(
                               onTap: () {
+                                members.remove(widget.username);
                                 Navigator.push(
                                     context,
                                     MaterialPageRoute(
@@ -243,11 +246,12 @@ class _ChatScreenState extends State<ChatScreen> {
                                               groupid: groupid,
                                               groupname: groupName,
                                               imageUrl: groupImageUrl,
+                                              members: members,
                                             )));
                               },
                               contentPadding: const EdgeInsets.only(
                                 left: 20.0,
-                                top: 0.0,
+                                top: 10.0,
                                 right: 20.0,
                               ),
                               title: Text(

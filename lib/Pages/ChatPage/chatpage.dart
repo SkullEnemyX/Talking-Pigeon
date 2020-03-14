@@ -156,33 +156,31 @@ class _ChatPageState extends State<ChatPage> {
                           //status is the timestamp and statusforeveryone is the user's showoff msg.
                         )));
               },
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.start,
-                children: <Widget>[
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.max,
-                    children: <Widget>[
-                      Text(
-                        "${widget.frienduid}"
-                            .toString()
-                            .split(" ")[0], //Change Name to Friends name.
-                        style: TextStyle(
-                            fontSize: 25.0,
-                            color: widget.greet,
-                            fontWeight: FontWeight.w600),
-                      ),
-                      Text(
-                        _timeStamp.lastSeen(status),
-                        style: TextStyle(
-                            color: Theme.of(context).textTheme.title.color,
-                            fontSize: 15.0,
-                            fontWeight: FontWeight.w400),
-                      ),
-                    ],
-                  ),
-                ],
+              child: Container(
+                width: MediaQuery.of(context).size.width - 100.0,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.max,
+                  children: <Widget>[
+                    Text(
+                      "${widget.frienduid}"
+                          .toString()
+                          .split(" ")[0], //Change Name to Friends name.
+                      style: TextStyle(
+                          fontSize: 25.0,
+                          color: widget.greet,
+                          fontWeight: FontWeight.w600),
+                    ),
+                    Text(
+                      _timeStamp.lastSeen(status),
+                      style: TextStyle(
+                          color: Theme.of(context).textTheme.title.color,
+                          fontSize: 15.0,
+                          fontWeight: FontWeight.w400),
+                    ),
+                  ],
+                ),
               ),
             ),
           ],
@@ -207,54 +205,18 @@ class _ChatPageState extends State<ChatPage> {
                           itemCount: document.length,
                           controller: listScrollController,
                           itemBuilder: (context, i) {
-                            try {
-                              if (document.length > 1) {
-                                if (i == document.length - 1) {
-                                  return buildColumnWithTime(document, i);
-                                } else if (i >= 1 &&
-                                    _timeStamp.checkChangeInDate(
-                                        int.parse(document[i]["timestamp"]),
-                                        int.parse(
-                                            document[i + 1]["timestamp"]))) {
-                                  return buildColumnWithTime(document, i);
-                                } else {
-                                  return InkWell(
-                                      onTap: () {
-                                        print(i);
-                                      },
-                                      child: Dismissible(
-                                          key: UniqueKey(),
-                                          confirmDismiss: (dir) async {
-                                            _focusNode.requestFocus();
-                                            return false;
-                                          },
-                                          child: buildColumn(document, i)));
-                                }
+                            if (document.length == 1 ||
+                                i == document.length - 1) {
+                              return buildColumnWithTime(document[i]);
+                            } else {
+                              if (i >= 0 &&
+                                  _timeStamp.checkChangeInDate(
+                                    int.parse(document[i]["timestamp"]),
+                                    int.parse(document[i + 1]["timestamp"]),
+                                  )) {
+                                return buildColumnWithTime(document[i]);
                               }
-                              return Column(
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
-                                children: <Widget>[
-                                  Bubble(
-                                    message: document[i]["content"],
-                                    notMe: document[i]["isMe"]
-                                                .compareTo(widget.name) ==
-                                            0
-                                        ? false
-                                        : true,
-                                    delivered: true,
-                                    sendername: document[i]["isMe"],
-                                    timestamp: document[i]["timestamp"],
-                                    methodVia: 0,
-                                    background: widget.background,
-                                    type:
-                                        document[i]["isImage"] == true ? 1 : 0,
-                                  ),
-                                ],
-                              );
-                            } catch (RangeError) {
-                              return Container(
-                                color: Colors.white,
-                              );
+                              return buildColumn(document[i]);
                             }
                           });
                     }
@@ -360,26 +322,26 @@ class _ChatPageState extends State<ChatPage> {
     );
   }
 
-  Column buildColumn(List<DocumentSnapshot> document, int i) {
+  Column buildColumn(DocumentSnapshot document) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisAlignment: MainAxisAlignment.center,
       children: <Widget>[
         Bubble(
-          message: document[i]["content"],
-          notMe: document[i]["isMe"].compareTo(widget.name) == 0 ? false : true,
+          message: document["content"],
+          notMe: document["isMe"].compareTo(widget.name) == 0 ? false : true,
           delivered: true,
-          sendername: document[i]["isMe"],
-          timestamp: document[i]["timestamp"],
+          sendername: document["isMe"],
+          timestamp: document["timestamp"],
           methodVia: 0,
           background: widget.background,
-          type: document[i]["isImage"] == true ? 1 : 0,
+          type: document["isImage"] == true ? 1 : 0,
         ),
       ],
     );
   }
 
-  Column buildColumnWithTime(List<DocumentSnapshot> document, int i) {
+  Column buildColumnWithTime(DocumentSnapshot document) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisAlignment: MainAxisAlignment.center,
@@ -395,7 +357,7 @@ class _ChatPageState extends State<ChatPage> {
             child: Text(
               DateFormat("MMM dd, y").format(
                 DateTime.fromMillisecondsSinceEpoch(
-                  int.parse(document[i]["timestamp"]),
+                  int.parse(document["timestamp"]),
                 ),
               ),
               style: TextStyle(color: Theme.of(context).textTheme.title.color),
@@ -406,14 +368,14 @@ class _ChatPageState extends State<ChatPage> {
           height: 10,
         ),
         Bubble(
-          message: document[i]["content"],
-          notMe: document[i]["isMe"].compareTo(widget.name) == 0 ? false : true,
+          message: document["content"],
+          notMe: document["isMe"].compareTo(widget.name) == 0 ? false : true,
           delivered: true,
-          sendername: document[i]["isMe"],
-          timestamp: document[i]["timestamp"],
+          sendername: document["isMe"],
+          timestamp: document["timestamp"],
           methodVia: 0,
           background: widget.background,
-          type: document[i]["isImage"] == true ? 1 : 0,
+          type: document["isImage"] == true ? 1 : 0,
         ),
       ],
     );
