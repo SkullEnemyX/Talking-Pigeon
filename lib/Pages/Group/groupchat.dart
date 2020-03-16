@@ -17,24 +17,20 @@ class GroupChat extends StatefulWidget {
   final String username;
   final String groupid;
   final String groupname;
-  final String imageUrl;
-  final List<dynamic> members;
-  const GroupChat(
-      {Key key,
-      this.username,
-      this.groupid,
-      this.groupname,
-      this.imageUrl,
-      @required this.members})
-      : super(key: key);
+  const GroupChat({
+    Key key,
+    this.username,
+    this.groupid,
+    this.groupname,
+  }) : super(key: key);
   @override
   _GroupChatState createState() => _GroupChatState();
 }
 
 class _GroupChatState extends State<GroupChat> {
   Stream<QuerySnapshot> snap;
-  StreamSubscription groupSnapshot;
   DocumentSnapshot lastDocument;
+  StreamSubscription groupSnapshot;
   String msg;
   final CommonID commonID = CommonID();
   final ScrollController listScrollController = new ScrollController();
@@ -44,21 +40,27 @@ class _GroupChatState extends State<GroupChat> {
   String groupName;
   String groupImageUrl;
   String memberList = "";
+  List<dynamic> members = [];
+  List<dynamic> memberTokens = [];
 
   @override
   void initState() {
     super.initState();
     snap = snapshotReturn(widget.username, widget.groupid);
-    memberList += widget.username;
     groupSnapshot = _fetchInitDetails().listen((val) {
       DocumentSnapshot db = val.documents[0];
-      groupImageUrl = db["imageUrl"] ?? "";
-      groupName = db["groupname"] ?? "";
-      memberList = db["members"] ?? [];
+      setState(() {
+        members = db["members"] ?? [];
+        groupImageUrl = db["imageUrl"] ?? "";
+        groupName = db["groupname"] ?? "";
+        memberTokens = db["deviceId"] ?? [];
+      });
+      members.remove(widget.username);
+      memberList += widget.username;
+      for (int i = 0; i < members.length; ++i) {
+        memberList += ", " + members[i].toString();
+      }
     });
-    for (int i = 0; i < widget.members.length; ++i) {
-      memberList += ", " + widget.members[i].toString();
-    }
   }
 
   @override
@@ -66,14 +68,6 @@ class _GroupChatState extends State<GroupChat> {
     super.dispose();
     textEditingController.dispose();
     groupSnapshot.cancel();
-  }
-
-  Stream<QuerySnapshot> _fetchInitDetails() {
-    Stream<QuerySnapshot> snap = Firestore.instance
-        .collection("Groups")
-        .where("groupid", isEqualTo: "${widget.groupid}")
-        .snapshots();
-    return snap;
   }
 
   Stream<QuerySnapshot> snapshotReturn(String username, String groupid) {
@@ -84,6 +78,14 @@ class _GroupChatState extends State<GroupChat> {
         .collection(groupid)
         .orderBy('timestamp', descending: true)
         .limit(50)
+        .snapshots();
+    return snap;
+  }
+
+  Stream<QuerySnapshot> _fetchInitDetails() {
+    Stream<QuerySnapshot> snap = Firestore.instance
+        .collection("Groups")
+        .where("groupid", isEqualTo: "${widget.groupid}")
         .snapshots();
     return snap;
   }
@@ -123,7 +125,7 @@ class _GroupChatState extends State<GroupChat> {
                           foregroundColor: Theme.of(context).primaryColor,
                           child: ClipOval(
                             child: CachedNetworkImage(
-                              imageUrl: widget.imageUrl ??
+                              imageUrl: groupImageUrl ??
                                   "https://i.ya-webdesign.com/images/default-image-png-1.png",
                               fit: BoxFit.cover,
                             ),
@@ -322,6 +324,7 @@ class _GroupChatState extends State<GroupChat> {
           ),
         ),
         Bubble(
+          isGroup: true,
           message: document["content"],
           notMe:
               document["isMe"].compareTo(widget.username) == 0 ? false : true,
@@ -373,6 +376,7 @@ class _GroupChatState extends State<GroupChat> {
           ),
         ),
         Bubble(
+          isGroup: true,
           message: document["content"],
           notMe:
               document["isMe"].compareTo(widget.username) == 0 ? false : true,
@@ -452,8 +456,11 @@ class _GroupChatState extends State<GroupChat> {
       //add url later to this part of the image that is uploaded either on imgbb or firebase storage.
       'isMe': widget.username,
       'isImage': type == 1,
-      'receiverToken':
-          '' //Put the receiver token of all members or find some other jugaad.
+      'groupchat': "true",
+      'groupid': widget.groupid,
+      'groupname': widget.groupname,
+      'receiverToken': memberTokens
+      //Put the receiver token of all members or find some other jugaad.
       //this set isImage field to boolean true if it is an image else false if it is a message.
     };
 

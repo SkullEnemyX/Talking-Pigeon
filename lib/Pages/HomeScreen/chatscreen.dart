@@ -48,6 +48,7 @@ class _ChatScreenState extends State<ChatScreen> {
   String thumbnail = "";
   String profilepic = "";
   String fullname = "";
+  String deviceId = "";
   List<String> selectedFriends = [];
   Stream<QuerySnapshot> streamOfFriends;
   Stream<QuerySnapshot> streamOfGroups;
@@ -68,23 +69,46 @@ class _ChatScreenState extends State<ChatScreen> {
         onMessage: (Map<String, dynamic> message) async {
       print(message);
     }, onLaunch: (Map<String, dynamic> message) async {
-      await Navigator.push(
+      if (message['data']['groupchat'].compareTo("false") == 0) {
+        await Navigator.push(
           context,
           MaterialPageRoute(
-              builder: (context) => ChatPage(
-                    name: widget.username,
-                    frienduid: message['data']['sendername'],
-                  )));
+            builder: (context) => ChatPage(
+              name: widget.username,
+              frienduid: message['data']['sendername'],
+            ),
+          ),
+        );
+      } else {
+        await Navigator.of(context).push(MaterialPageRoute(
+            builder: (context) => GroupChat(
+                  groupid: message['data']['groupid'],
+                  groupname: message['data']['groupname'],
+                  username: widget.username,
+                )));
+      }
       //print(message);
     }, onResume: (Map<String, dynamic> message) async {
       Navigator.of(context).popUntil((route) => route.isFirst);
-      await Navigator.push(
+      if (message['data']['groupchat'].compareTo("false") == 0) {
+        await Navigator.push(
           context,
           MaterialPageRoute(
-              builder: (context) => ChatPage(
-                    name: widget.username,
-                    frienduid: message['data']['sendername'],
-                  )));
+            builder: (context) => ChatPage(
+              name: widget.username,
+              frienduid: message['data']['sendername'],
+            ),
+          ),
+        );
+      } else {
+        await Navigator.of(context).push(MaterialPageRoute(
+            builder: (context) => GroupChat(
+                  groupid: message['data']['groupid'],
+                  groupname: message['data']['groupname'],
+                  username: widget.username,
+                )));
+      }
+
       //print(message);
     });
   }
@@ -108,6 +132,7 @@ class _ChatScreenState extends State<ChatScreen> {
         .get()
         .then((onValue) {
       if (onValue.exists) {
+        deviceId = onValue.data["deviceId"];
         fullname = onValue.data["name"];
         thumbnail = onValue.data["thumbnail"];
         profilepic = onValue.data["profileImage"];
@@ -229,15 +254,12 @@ class _ChatScreenState extends State<ChatScreen> {
                         itemBuilder: (context, index) {
                           String groupName =
                               snap.data.documents[index]["groupname"] ?? "";
-                          String groupImageUrl =
-                              snap.data.documents[index]["imageUrl"] ?? "";
                           String groupid =
                               snap.data.documents[index]["groupid"] ?? "";
-                          List<dynamic> members =
-                              snap.data.documents[index]["members"] ?? [];
+                          String groupImageUrl =
+                              snap.data.documents[index]["imageUrl"] ?? "";
                           return ListTile(
                               onTap: () {
-                                members.remove(widget.username);
                                 Navigator.push(
                                     context,
                                     MaterialPageRoute(
@@ -245,8 +267,6 @@ class _ChatScreenState extends State<ChatScreen> {
                                               username: widget.username,
                                               groupid: groupid,
                                               groupname: groupName,
-                                              imageUrl: groupImageUrl,
-                                              members: members,
                                             )));
                               },
                               contentPadding: const EdgeInsets.only(
@@ -520,6 +540,7 @@ class _ChatScreenState extends State<ChatScreen> {
                 Navigator.of(context).push(MaterialPageRoute(
                     builder: (context) => CreateGroup(
                           username: widget.username,
+                          deviceId: deviceId,
                         )));
               },
             )

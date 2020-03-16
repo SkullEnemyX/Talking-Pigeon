@@ -4,17 +4,20 @@ import 'package:talking_pigeon_x/Pages/Global/timestamp.dart';
 import 'package:talking_pigeon_x/Pages/Profile/ImageScreen.dart';
 
 class Bubble extends StatelessWidget {
-  Bubble(
-      {this.message,
-      this.notMe,
-      this.delivered,
-      this.timestamp,
-      this.sendername,
-      this.type = 0,
-      this.background,
-      this.methodVia = 0});
+  Bubble({
+    this.message,
+    this.notMe,
+    this.delivered,
+    this.timestamp,
+    this.sendername,
+    this.type = 0,
+    this.background,
+    this.methodVia = 0,
+    this.isGroup = false,
+  });
   final bool delivered;
   final bool notMe;
+  final bool isGroup;
   final String message;
   final String timestamp;
   final int type;
@@ -120,7 +123,7 @@ class Bubble extends StatelessWidget {
                           )
                         ],
                       ),
-                    )
+                    ),
                   ],
                 ),
               ),

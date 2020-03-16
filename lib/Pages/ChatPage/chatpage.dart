@@ -34,7 +34,7 @@ class _ChatPageState extends State<ChatPage> {
   DocumentSnapshot lastDocument;
   List listMsg = [];
   String msg;
-  String receiverToken = "";
+  List<String> receiverToken = [];
   String status = "";
   String imageUrl = "";
   String statusForEveryone = "";
@@ -62,7 +62,7 @@ class _ChatPageState extends State<ChatPage> {
         DocumentSnapshot db = val.documents[0];
         setState(() {
           status = db["status"] ?? " ";
-          receiverToken = db["deviceId"] ?? " ";
+          receiverToken.add(db["deviceId"]);
           imageUrl = db["thumbnail"];
           statusForEveryone = db["status_for_everyone"];
         });
@@ -446,6 +446,9 @@ class _ChatPageState extends State<ChatPage> {
       //add url later to this part of the image that is uploaded either on imgbb or firebase storage.
       'isMe': widget.name,
       'isImage': type == 1,
+      'groupchat': "false",
+      'groupid': "",
+      'groupname': "",
       'receiverToken': receiverToken
       //this set isImage field to boolean true if it is an image else false if it is a message.
     };

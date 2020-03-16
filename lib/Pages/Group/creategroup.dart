@@ -10,10 +10,12 @@ import 'package:http/http.dart' as http;
 
 class CreateGroup extends StatefulWidget {
   final String username;
+  final String deviceId;
 
   const CreateGroup({
     Key key,
     this.username,
+    @required this.deviceId,
   }) : super(key: key);
   @override
   _CreateGroupState createState() => _CreateGroupState();
@@ -26,10 +28,11 @@ class _CreateGroupState extends State<CreateGroup> {
   String imageUrl = "";
   Color groupNameColor = Colors.red;
   Color groupPicColor = Colors.red;
+  Map<String, String> selectedFriendsRegistrationToken = {};
   List<String> selectedFriends = [];
   @override
   void initState() {
-    selectedFriends.add(widget.username);
+    selectedFriendsRegistrationToken[widget.username] = widget.deviceId;
     streamOfFriends = _fetchFromFriendsCollection();
     controllerGroupName.addListener(() {
       setState(() {
@@ -48,7 +51,7 @@ class _CreateGroupState extends State<CreateGroup> {
   }
 
   Future<void> createGroup(String username, List<String> members,
-      String groupName, String imageUrl) async {
+      String groupName, String imageUrl, List<String> memberTokens) async {
     String uniqueGroupID = commonID.groupChatConversationID(username);
     DocumentReference reference =
         Firestore.instance.document("messages/$uniqueGroupID");
@@ -61,7 +64,8 @@ class _CreateGroupState extends State<CreateGroup> {
       "groupname": groupName,
       "admin": username,
       "imageUrl": imageUrl,
-      "groupid": uniqueGroupID
+      "groupid": uniqueGroupID,
+      "deviceId": memberTokens
     });
   }
 
@@ -117,9 +121,20 @@ class _CreateGroupState extends State<CreateGroup> {
           color: Theme.of(context).iconTheme.color,
         ),
         onPressed: () {
-          if (controllerGroupName.text != "" && selectedFriends.length >= 3) {
-            createGroup(widget.username, selectedFriends,
-                controllerGroupName.text, imageUrl);
+          if (controllerGroupName.text != "" &&
+              selectedFriendsRegistrationToken.length >= 1) {
+            List<String> memberTokens = [];
+            for (String i in selectedFriendsRegistrationToken.keys) {
+              memberTokens.add(selectedFriendsRegistrationToken[i]);
+            }
+            createGroup(
+              widget.username,
+              selectedFriendsRegistrationToken.keys.toList(),
+              controllerGroupName.text,
+              imageUrl,
+              memberTokens,
+            );
+            print(memberTokens);
             Navigator.of(context).pop();
           }
         },
@@ -235,10 +250,11 @@ class _CreateGroupState extends State<CreateGroup> {
                 padding: const EdgeInsets.only(left: 25, bottom: 10.0),
                 child: Text(
                     "Select Members (" +
-                        (selectedFriends.length - 1).toString() +
+                        (selectedFriendsRegistrationToken.length - 1)
+                            .toString() +
                         ")",
                     style: TextStyle(
-                      color: selectedFriends.length < 3
+                      color: selectedFriendsRegistrationToken.length < 3
                           ? Colors.red
                           : Theme.of(context).textTheme.title.color,
                       fontSize: 25.0,
@@ -264,15 +280,20 @@ class _CreateGroupState extends State<CreateGroup> {
                                             : GestureDetector(
                                                 onTap: () {
                                                   setState(() {
-                                                    selectedFriends.contains(
-                                                            friendUsername)
-                                                        ? selectedFriends
+                                                    selectedFriendsRegistrationToken
+                                                            .containsKey(
+                                                                friendUsername)
+                                                        ? selectedFriendsRegistrationToken
                                                             .remove(
                                                                 friendUsername)
-                                                        : selectedFriends.add(
-                                                            friendUsername);
+                                                        : selectedFriendsRegistrationToken[
+                                                                friendUsername] =
+                                                            snapshot.data
+                                                                    .documents[
+                                                                0]['deviceId'];
                                                   });
-                                                  print(selectedFriends);
+                                                  print(
+                                                      selectedFriendsRegistrationToken);
                                                 },
                                                 child: ListTile(
                                                     contentPadding:
@@ -336,8 +357,9 @@ class _CreateGroupState extends State<CreateGroup> {
                                                               ),
                                                             ),
                                                           ),
-                                                          selectedFriends.contains(
-                                                                  friendUsername)
+                                                          selectedFriendsRegistrationToken
+                                                                  .containsKey(
+                                                                      friendUsername)
                                                               ? Align(
                                                                   alignment:
                                                                       Alignment
