@@ -22,8 +22,8 @@ class TimeStamp {
           DateFormat("dd").format(now) == DateFormat("dd").format(date)) {
         return "last seen today at " + formatHR.format(date);
       } else if (diff.inDays == 1 ||
-          int.parse(DateFormat("dd").format(date)) !=
-              int.parse(DateFormat("dd").format(now))) {
+          int.parse(DateFormat("dd").format(date)) ==
+              int.parse(DateFormat("dd").format(now)) - 1) {
         return "last seen yesterday at " + formatHR.format(date);
       }
       return "last seen on " + formatDAY.format(date);

@@ -13,7 +13,7 @@ Future<Null> main() async {
   SharedPreferences prefs = await SharedPreferences.getInstance();
   String _username = (prefs.getString('username') ?? '');
   bool darkThemeEnabled = prefs.getBool("DarkMode");
-  Color themeColor = Color(prefs.getInt('color') ?? Color(0xFF27E9E1).value);
+  Color themeColor = Color(prefs.getInt('color') ?? Colors.blue.value);
   // SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
   //   statusBarColor: Colors.black, // status bar color
   //   statusBarIconBrightness: Brightness.dark,

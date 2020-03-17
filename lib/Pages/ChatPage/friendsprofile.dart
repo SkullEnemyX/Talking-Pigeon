@@ -8,8 +8,13 @@ class UserProfile extends StatefulWidget {
   final String imageUrl;
   final String statusForEveryone;
   final String lastseen;
+  final String name;
   UserProfile(
-      {this.username, this.imageUrl, this.statusForEveryone, this.lastseen});
+      {this.username,
+      this.imageUrl,
+      this.statusForEveryone,
+      this.lastseen,
+      this.name});
   @override
   _UserProfileState createState() => _UserProfileState();
 }
@@ -134,7 +139,7 @@ class _UserProfileState extends State<UserProfile> {
                 height: 1.0,
               ),
               Text(
-                widget.username,
+                widget.name,
                 style: TextStyle(
                   color: Colors.grey,
                   fontSize: 15.0,

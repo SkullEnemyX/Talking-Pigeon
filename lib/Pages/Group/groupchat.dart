@@ -419,12 +419,11 @@ class _GroupChatState extends State<GroupChat> {
           activeControlsWidgetColor: Colors.purple,
           //If theme color is added then change this, otherwise the theme of the app.
           toolbarColor: Theme.of(context).backgroundColor,
-          toolbarWidgetColor: Colors.white,
+          toolbarWidgetColor: Theme.of(context).iconTheme.color,
+          statusBarColor: Theme.of(context).backgroundColor,
+          activeWidgetColor: Theme.of(context).primaryColor,
           initAspectRatio: CropAspectRatioPreset.original,
           lockAspectRatio: false,
-        ),
-        iosUiSettings: IOSUiSettings(
-          minimumAspectRatio: 1.0,
         ),
       );
       List<int> imageBytes = _image.readAsBytesSync();

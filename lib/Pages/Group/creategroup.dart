@@ -122,7 +122,7 @@ class _CreateGroupState extends State<CreateGroup> {
         ),
         onPressed: () {
           if (controllerGroupName.text != "" &&
-              selectedFriendsRegistrationToken.length >= 1) {
+              selectedFriendsRegistrationToken.length >= 3) {
             List<String> memberTokens = [];
             for (String i in selectedFriendsRegistrationToken.keys) {
               memberTokens.add(selectedFriendsRegistrationToken[i]);

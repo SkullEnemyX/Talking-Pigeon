@@ -34,6 +34,7 @@ class _ChatPageState extends State<ChatPage> {
   DocumentSnapshot lastDocument;
   List listMsg = [];
   String msg;
+  String name;
   List<String> receiverToken = [];
   String status = "";
   String imageUrl = "";
@@ -65,6 +66,7 @@ class _ChatPageState extends State<ChatPage> {
           receiverToken.add(db["deviceId"]);
           imageUrl = db["thumbnail"];
           statusForEveryone = db["status_for_everyone"];
+          name = db["name"] ?? "";
         });
       });
     });
@@ -153,6 +155,7 @@ class _ChatPageState extends State<ChatPage> {
                           imageUrl: imageUrl,
                           lastseen: status,
                           statusForEveryone: statusForEveryone,
+                          name: name,
                           //status is the timestamp and statusforeveryone is the user's showoff msg.
                         )));
               },
@@ -406,10 +409,10 @@ class _ChatPageState extends State<ChatPage> {
           toolbarTitle: '',
           backgroundColor: Theme.of(context).backgroundColor,
           showCropGrid: false,
-          activeControlsWidgetColor: Colors.purple,
+          activeControlsWidgetColor: Theme.of(context).primaryColor,
           //If theme color is added then change this, otherwise the theme of the app.
           toolbarColor: Theme.of(context).backgroundColor,
-          toolbarWidgetColor: Colors.white,
+          toolbarWidgetColor: Theme.of(context).iconTheme.color,
           initAspectRatio: CropAspectRatioPreset.original,
           lockAspectRatio: false,
         ),
